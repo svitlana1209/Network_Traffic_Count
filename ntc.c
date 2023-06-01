@@ -15,7 +15,7 @@
 #include <ntc_ht.h>
 
 FILE *t_tty;
-struct termios *init_term;
+struct termios init_term;
 sem_t sem_get_pack, sem_ht;
 int key_exit, db, id_socket, network_interface_idx, network_interface_type, ht_size;
 pthread_t thread_wait_key, thread_queue, thread_display_dyn;
@@ -78,7 +78,7 @@ void call_init() {
 
     if (!(t_tty  = fopen ("/dev/tty","r")))
         quit("tty access error");
-    init_term = init_terminal(t_tty);
+    init_terminal(&init_term, t_tty);
 
     queue_head = queue_tail = create_queue();
     ht_head = NULL;
@@ -107,8 +107,7 @@ void call_init() {
 
 void call_exit() {
 
-    restore_terminal(init_term, t_tty);
-    free(init_term);
+    restore_terminal(&init_term, t_tty);
 
     if ((pthread_join(thread_wait_key, NULL)) != 0)
         quit("Thread join failed (wait key)");
