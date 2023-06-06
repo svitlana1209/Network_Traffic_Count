@@ -1,3 +1,5 @@
+#define HTSIZE 65521
+
 typedef struct pkt {
     u_int8_t	buff[1516];
     u_int32_t	size;

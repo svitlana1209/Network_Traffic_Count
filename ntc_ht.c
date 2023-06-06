@@ -63,3 +63,20 @@ HashKey *hkey;
     }
 }
 
+u_int32_t get_hash (u_int32_t s, u_int32_t d) {
+
+    return (s%HTSIZE + d%HTSIZE)%HTSIZE;
+}
+
+hashtable * locate_hash (hashtable *ht_head, u_int32_t hash) {
+hashtable *ht_found, *tmp;
+
+    ht_found = NULL;
+    for (tmp=ht_head; tmp->next != NULL; tmp=tmp->next) {
+        if (tmp->hash == hash) {
+            ht_found = tmp;
+            break;
+        }
+    }
+    return ht_found;
+}
