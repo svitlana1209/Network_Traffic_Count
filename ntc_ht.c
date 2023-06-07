@@ -46,7 +46,7 @@ u_int32_t hash;
     return new_queue_head;
 }
 
-void destroy_hashtable (hashtable *ht) {
+void destroy_hashtable(hashtable *ht) {
 void *tmp;
 HashKey *hkey;
 
@@ -63,12 +63,12 @@ HashKey *hkey;
     }
 }
 
-u_int32_t get_hash (u_int32_t s, u_int32_t d) {
+u_int32_t get_hash(u_int32_t s, u_int32_t d) {
 
     return (s%HTSIZE + d%HTSIZE)%HTSIZE;
 }
 
-hashtable * locate_hash (hashtable *ht_head, u_int32_t hash) {
+hashtable * locate_hash(hashtable *ht_head, u_int32_t hash) {
 hashtable *ht_found, *tmp;
 
     ht_found = NULL;
@@ -79,4 +79,23 @@ hashtable *ht_found, *tmp;
         }
     }
     return ht_found;
+}
+
+HashKey * locate_hkey(hashtable *ht, Queue *q) {
+HashKey *hkey_found, *tmp;
+
+    hkey_found = NULL;
+    for (tmp=ht->ptr_to_hashkey; tmp->next != NULL; tmp=tmp->next) {
+        if (tmp->srcIP==q->srcIP && tmp->dstIP==q->dstIP && tmp->year==q->year && tpm->month==q->month && tmp->day==q->day) {
+            hkey_found = tmp;
+            break;
+        }
+    }
+    return hkey_found;
+}
+
+void update_hashkey(HashKey *hkey, Queue *q) {
+
+    hkey->vol = hkey->vol + q->vol;
+    hkey->packs = hkey->packs + 1;
 }
