@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <ntc.h>
 #include <ntc_ht.h>
+#include <ntc_tools.h>
 
 /*
     HASHTABLE                   HashKey
@@ -114,7 +115,7 @@ u_int8_t flag;
     new_hkey->vol   = q->vol;
     new_hkey->packs = 1;
     do {
-        if (compare_keys(current_hkey, new_hkey) < 0) {
+        if (compare_keys(current_hkey->srcIP, current_hkey->dstIP, new_hkey->srcIP, new_hkey->dstIP) < 0) {
             /* new_hkey < current_hkey */
             if (current_hkey->prev == NULL) { /* the head of the list */
                 current_hkey->prev = new_hkey;

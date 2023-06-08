@@ -51,3 +51,21 @@ u_int8_t d;
     return d;
 }
 
+int compare_keys(u_int32_t current_srcIP, u_int32_t current_dstIP, u_int32_t new_srcIP, u_int32_t new_dstIP) {
+int result;
+
+    if (new_srcIP > current_srcIP) result = 1;
+    else {
+        if (new_srcIP < current_srcIP) result = -1;
+        else {
+            if (new_dstIP > current_dstIP) result = 1;
+            else {
+                if (new_dstIP < current_dstIP) result = -1;
+                else
+                    result = 0;
+            }
+        }
+    }
+    return result;
+}
+
