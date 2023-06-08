@@ -47,7 +47,6 @@ u_int8_t d;
         else
             d = 1;
     }
-
     return d;
 }
 
