@@ -99,3 +99,48 @@ void update_hashkey(HashKey *hkey, Queue *q) {
     hkey->vol = hkey->vol + q->vol;
     hkey->packs = hkey->packs + 1;
 }
+
+void append_new_hashkey (hashtable *ht_found, Queue *q) {
+HashKey *new_hkey, *current_hkey, *tmp_hkey;
+u_int8_t flag;
+
+    current_hkey = ht_found->ptr_to_hashkey;
+    new_hkey = (HashKey *)malloc(sizeof(HashKey));
+    new_hkey->year  = q->year;
+    new_hkey->mont  = q->month;
+    new_hkey->day   = q->day;
+    new_hkey->srcIP = q->srcIP;
+    new_hkey->dstIP = q->dstIP;
+    new_hkey->vol   = q->vol;
+    new_hkey->packs = 1;
+    do {
+        if (compare_keys(current_hkey, new_hkey) < 0) {
+            /* new_hkey < current_hkey */
+            if (current_hkey->prev == NULL) { /* the head of the list */
+                current_hkey->prev = new_hkey;
+                new_hkey->next = current_hkey;
+                new_hkey->prev = NULL;
+                ht_found->ptr_to_hashkey = new_hkey;
+            }
+            else { /* between keys */
+                tmp_hkey = current_hkey->prev;
+                current_hkey->prev = new_hkey;
+                new_hkey->next = current_hkey;
+                new_hkey->prev = tmp_hkey;
+                tmp_hkey->next = new_hkey;
+            }
+           flag = 1;
+        }
+        else {
+            if (current_hkey->next != NULL) current_hkey = current_hkey->next;
+            else {
+                /* new_key > last record */
+                current_hkey->next = new_hkey;
+                new_hkey->prev = current_hkey;
+                new_hkey->next = NULL;
+                flag = 1;
+            }
+        }
+    } while (flag != 1);
+}
+
