@@ -146,3 +146,64 @@ u_int8_t flag;
     } while (flag != 1);
 }
 
+hashtable * append_to_hashtable (hashtable *ht_head, u_int32_t hash, Queue *q) {
+hashtable *tmp_ht, *current_ht, *new_ht_row;
+HashKey *new_hkey;
+u_int8_t flag;
+
+    flag = 0;
+    new_ht_row = (hashtable *)malloc(sizeof(hashtable));
+    new_ht_row->hash = hash;
+    new_ht_row->ptr_to_hashkey = (HashKey *)malloc(sizeof(HashKey));
+    new_ht_row->next = NULL;
+    new_ht_row->prev = NULL;
+
+    new_hkey = new_ht_row->ptr_to_hashkey;
+    new_hkey->year  = q->year;
+    new_hkey->month = q->month;
+    new_hkey->day   = q->day;
+    new_hkey->srcIP = q->srcIP;
+    new_hkey->dstIP = q->dstIP;
+    new_hkey->vol   = q->vol;
+    new_hkey->packs = 1;
+    new_hkey->next  = NULL;
+    new_hkey->prev  = NULL;
+
+    if (ht_head == NULL)
+        ht_head = new_ht_row;
+    else {
+        current_ht = ht_head;
+        do {
+            if (hash < current_ht->hash)  {
+                /* Inserting a new hash before the current one */
+                if (current_ht->prev == NULL) {  /* the head of the list */
+                    current_ht->prev = new_ht_row;
+                    new_ht_row->next = current_ht;
+                    new_ht_row->prev = NULL;
+                    ht_head = new_ht_row;
+                }
+                else { /* between cells */
+                    tmp_ht = current_ht->prev;
+                    current_ht->prev = new_ht_row;
+                    new_ht_row->next = current_ht;
+                    new_ht_row->prev = tmp_ht;
+                    tmp_ht->next = new_ht_row;
+                }
+                flag = 1;
+            }
+            else {
+                if (current_ht->next != NULL)
+                    current_ht = current_ht->next;
+                else {
+                    /* Add new hash after the last record */
+                    current_ht->next = new_ht_row;
+                    new_ht_row->prev = current_ht;
+                    new_ht_row->next = NULL;
+                    flag = 1;
+                }
+            }
+        } while (flag != 1);
+    }
+    ht_records++;
+    return ht_head;
+}
