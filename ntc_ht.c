@@ -38,8 +38,14 @@ u_int32_t hash;
         else
             append_new_hashkey(ht_found, queue_head);
     }
-    else
-        ht_head = append_to_hashtable(ht_head, hash, queue_head);
+    else {
+        if (ht_records < HTSIZE)
+            ht_head = append_to_hashtable(ht_head, hash, queue_head);
+        else {
+            rehash();
+            ht_head = append_to_hashtable(ht_head, hash, queue_head);
+        }
+    }
 
     new_queue_head = queue_head->next;
     new_queue_head->prev = NULL;
