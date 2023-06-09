@@ -105,6 +105,7 @@ void append_new_hashkey (hashtable *ht_found, Queue *q) {
 HashKey *new_hkey, *current_hkey, *tmp_hkey;
 u_int8_t flag;
 
+    flag = 0;
     current_hkey = ht_found->ptr_to_hashkey;
     new_hkey = (HashKey *)malloc(sizeof(HashKey));
     new_hkey->year  = q->year;
