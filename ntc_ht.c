@@ -18,29 +18,9 @@
     |       |
   n | hash  |
     |       |
-    |       |
   M +-------+
 
 */
-
-void update_ht(hashtable *ht_found, Queue *queue_head){
-HashKey *hkey_found;
-
-    hkey_found = locate_hkey(ht_found, queue_head);
-    if (hkey_found)
-        update_hashkey(hkey_found, queue_head);
-    else
-        append_new_hashkey(ht_found, queue_head);
-}
-
-hashtable * locate_in_ht(hashtable *ht_head, Queue *queue_head) {
-hashtable *ht_found;
-u_int32_t hash;
-
-    hash = get_hash(queue_head->srcIP, queue_head->dstIP);
-    ht_found = locate_hash(ht_head, hash);
-    return ht_found;
-}
 
 void destroy_hashtable(hashtable *ht) {
 void *tmp;
@@ -57,6 +37,25 @@ HashKey *hkey;
         free(ht);
         ht = tmp;
     }
+}
+
+hashtable * locate_in_ht(hashtable *ht_head, Queue *queue_head) {
+hashtable *ht_found;
+u_int32_t hash;
+
+    hash = get_hash(queue_head->srcIP, queue_head->dstIP);
+    ht_found = locate_hash(ht_head, hash);
+    return ht_found;
+}
+
+void update_ht(hashtable *ht_found, Queue *queue_head) {
+HashKey *hkey_found;
+
+    hkey_found = locate_hkey(ht_found, queue_head);
+    if (hkey_found)
+        update_hashkey(hkey_found, queue_head);
+    else
+        append_new_hashkey(ht_found, queue_head);
 }
 
 u_int32_t get_hash(u_int32_t s, u_int32_t d) {
