@@ -26,6 +26,10 @@ total all_traf;
 u_int32_t ip;
 
 int main(int argc, char *argv[]) {
+double fill_factor;
+Queue *new_queue_head;
+hashtable *ht_found;
+
     key_exit = 0;
     db = 0;
     network_interface_type = -1;
@@ -65,14 +69,26 @@ int main(int argc, char *argv[]) {
         sem_wait(&sem_get_pack);
         /* Pulls an element from the head of the queue and puts it onto a hash table */
         /* Queue head address will change */
-        queue_head = fill_hashtable(queue_head, ht_head, &htsize);
+        ht_found = locate_in_ht(ht_head, queue_head);
+        if (ht_found)
+            update_ht(ht_found, queue_head);
+        else {
+            fill_factor = htsize * 0.75;
+            if (ht_num_records(ht_head) > fill_factor) {
+                htsize  = set_new_htsize(htsize);
+                ht_head = rehash(ht_head, htsize);
+            }
+                append_to_hashtable(ht_head, queue_head);
+        }
+        new_queue_head = queue_head->next;
+        new_queue_head->prev = NULL;
+        free(queue_head);
+        queue_head = new_queue_head;
         sem_post(&sem_ht);
     }
     call_exit();
     return 0;
 }
-
-/* ----- */
 
 void call_init() {
 
@@ -102,8 +118,6 @@ void call_init() {
     if ((pthread_create(&thread_display_dyn, NULL, display_info, (void *)(ht_head))) != 0)
         quit("Thread creation failed (display_dyn)");
 }
-
-/* ----- */
 
 void call_exit() {
 
@@ -138,8 +152,6 @@ void call_exit() {
     close(id_socket);
 }
 
-/* ----- */
-
 void * waiting_for_key (void *ptr_tty) {
 FILE *terminal;
 
@@ -153,8 +165,6 @@ FILE *terminal;
     }
     pthread_exit(NULL);
 }
-
-/* ----- */
 
 void * process_queue(void *tail) {
 Queue *tmp;
@@ -176,8 +186,6 @@ Queue *tmp;
     }
     pthread_exit(NULL);
 }
-
-/* ----- */
 
 void * display_info(void *head) {
 
