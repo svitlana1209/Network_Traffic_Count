@@ -17,7 +17,7 @@
 FILE *t_tty;
 struct termios init_term;
 sem_t sem_get_pack, sem_ht;
-int key_exit, db, id_socket, network_interface_idx, network_interface_type, ht_size;
+int key_exit, db, id_socket, network_interface_idx, network_interface_type, htsize;
 pthread_t thread_wait_key, thread_queue, thread_display_dyn;
 packet *pack;
 Queue *queue_head, *queue_tail;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
         sem_wait(&sem_get_pack);
         /* Pulls an element from the head of the queue and puts it onto a hash table */
         /* Queue head address will change */
-        queue_head = fill_hashtable(queue_head, ht_head);
+        queue_head = fill_hashtable(queue_head, ht_head, &htsize);
         sem_post(&sem_ht);
     }
     call_exit();
@@ -82,7 +82,7 @@ void call_init() {
 
     queue_head = queue_tail = create_queue();
     ht_head = NULL;
-    ht_size = 0;
+    htsize = 65521;
 
     all_traf.in = 0;
     all_traf.out = 0;
