@@ -78,7 +78,7 @@ hashtable *ht_found;
                 htsize  = set_new_htsize(htsize);
                 ht_head = rehash(ht_head, htsize);
             }
-                append_to_hashtable(ht_head, queue_head);
+                ht_head = append_to_hashtable(ht_head, queue_head);
         }
         new_queue_head = queue_head->next;
         new_queue_head->prev = NULL;
