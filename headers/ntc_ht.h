@@ -7,5 +7,5 @@ hashtable * append_to_hashtable(hashtable *, u_int32_t, Queue *);
 void destroy_hashtable(hashtable *);
 void update_ht(hashtable *, Queue *);
 hashtable * locate_in_ht(hashtable *, Queue *);
-
-
+int set_new_htsize(int);
+hashtable * rehash(hashtable *, int);
