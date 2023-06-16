@@ -72,7 +72,7 @@ hashtable *ht_found;
         /* Queue head address will change */
         ht_found = locate_in_hashtable(ht_head, queue_head);
         if (ht_found)
-            update_ht(ht_found, queue_head);
+            update_hashtable(ht_found, queue_head);
         else {
             fill_factor = htsize * 0.75;
             if (count_records_hashtable(ht_head) > fill_factor) {

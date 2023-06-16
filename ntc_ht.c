@@ -58,7 +58,7 @@ u_int32_t hash;
     return ht_found;
 }
 
-void update_ht(hashtable *ht_found, Queue *queue_head) {
+void update_hashtable(hashtable *ht_found, Queue *queue_head) {
 HashKey *hkey_found;
 
     hkey_found = locate_hkey(ht_found, queue_head);
@@ -77,7 +77,7 @@ hashtable * locate_hash(hashtable *ht_head, u_int32_t hash) {
 hashtable *ht_found, *tmp;
 
     ht_found = NULL;
-    for (tmp=ht_head; tmp->next != NULL; tmp=tmp->next) {
+    for (tmp=ht_head; tmp!=NULL; tmp=tmp->next) {
         if (tmp->hash == hash) {
             ht_found = tmp;
             break;
@@ -90,7 +90,7 @@ HashKey * locate_hkey(hashtable *ht, Queue *q) {
 HashKey *hkey_found, *tmp;
 
     hkey_found = NULL;
-    for (tmp=ht->ptr_to_hashkey; tmp->next != NULL; tmp=tmp->next) {
+    for (tmp=ht->ptr_to_hashkey; tmp!=NULL; tmp=tmp->next) {
         if (tmp->srcIP==q->srcIP && tmp->dstIP==q->dstIP && tmp->year==q->year && tpm->month==q->month && tmp->day==q->day) {
             hkey_found = tmp;
             break;
@@ -105,7 +105,7 @@ void update_hashkey(HashKey *hkey, Queue *q) {
     hkey->packs = hkey->packs + 1;
 }
 
-void append_new_hashkey (hashtable *ht_found, Queue *q) {
+void append_new_hashkey(hashtable *ht_found, Queue *q) {
 HashKey *new_hkey, *current_hkey, *tmp_hkey;
 u_int8_t flag;
 
@@ -150,7 +150,7 @@ u_int8_t flag;
     } while (flag != 1);
 }
 
-hashtable * append_to_hashtable (hashtable *ht_head, Queue *q) {
+hashtable * append_to_hashtable(hashtable *ht_head, Queue *q) {
 hashtable *tmp_ht, *current_ht, *new_ht_row;
 HashKey *new_hkey;
 u_int32_t hash;
@@ -213,3 +213,13 @@ u_int8_t flag;
     }
     return ht_head;
 }
+
+int count_records_hashtable(hashtable *ht) {
+int recs;
+hashtable *tmp;
+
+    recs = 0;
+    for (tmp=ht; tmp!=NULL; tmp=tmp->next) recs++;
+    return recs;
+}
+
