@@ -70,12 +70,12 @@ hashtable *ht_found;
         sem_wait(&sem_get_pack);
         /* Pulls an element from the head of the queue and puts it onto a hash table */
         /* Queue head address will change */
-        ht_found = locate_in_ht(ht_head, queue_head);
+        ht_found = locate_in_hashtable(ht_head, queue_head);
         if (ht_found)
             update_ht(ht_found, queue_head);
         else {
             fill_factor = htsize * 0.75;
-            if (ht_num_records(ht_head) > fill_factor) {
+            if (count_records_hashtable(ht_head) > fill_factor) {
                 htsize  = set_htsize(htsize*2); /* 6 (!) */
                 ht_head = rehash(ht_head, htsize);
             }

@@ -6,6 +6,7 @@ void append_new_hashkey(hashtable *, Queue *);
 hashtable * append_to_hashtable(hashtable *, u_int32_t, Queue *);
 void destroy_hashtable(hashtable *);
 void update_ht(hashtable *, Queue *);
-hashtable * locate_in_ht(hashtable *, Queue *);
+hashtable * locate_in_hashtable(hashtable *, Queue *);
 int set_htsize(int);
+int count_records_hashtable(hashtable *);
 hashtable * rehash(hashtable *, int);

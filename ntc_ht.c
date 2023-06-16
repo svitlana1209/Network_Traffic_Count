@@ -49,7 +49,7 @@ HashKey *hkey;
     }
 }
 
-hashtable * locate_in_ht(hashtable *ht_head, Queue *queue_head) {
+hashtable * locate_in_hashtable(hashtable *ht_head, Queue *queue_head) {
 hashtable *ht_found;
 u_int32_t hash;
 
