@@ -3,17 +3,33 @@
 #include <sys/types.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <ntc.h>
 #include <ntc_tools.h>
+
+bool primality_test(int p) {
+int rest;
+    rest = mod(p,6);
+    if (rest==1 || rest==5)
+        return true;
+    return false;
+}
+
+int mod(int p, int m) {
+    do
+        p = p - m;
+    while (p>m);
+    return p;
+}
 
 void quit(char *s) {
     printf("\n%s\n",s);
     exit(EXIT_FAILURE);
 }
-/* -------------------------------------------------------------------------------------
+
+/*
     Select 'num' bytes from the packet 'p' from position 'poz'.
     If size of packet is too small and 'poz' exceeds packet size then returns -1
-   -------------------------------------------------------------------------------------
 */
 int get_from_packet(packet *p, u_int8_t poz, u_int8_t num) {
 int number;

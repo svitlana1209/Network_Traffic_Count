@@ -8,6 +8,7 @@
 #include <net/if.h>
 #include <termios.h>
 #include <term.h>
+#include <math.h>
 #include <ntc.h>
 #include <ntc_net.h>
 #include <ntc_tools.h>
@@ -75,7 +76,7 @@ hashtable *ht_found;
         else {
             fill_factor = htsize * 0.75;
             if (ht_num_records(ht_head) > fill_factor) {
-                htsize  = set_new_htsize(htsize);
+                htsize  = set_htsize(htsize*2); /* 6 (!) */
                 ht_head = rehash(ht_head, htsize);
             }
                 ht_head = append_to_hashtable(ht_head, queue_head);
@@ -98,7 +99,7 @@ void call_init() {
 
     queue_head = queue_tail = create_queue();
     ht_head = NULL;
-    htsize = 65521;
+    htsize = set_htsize(pow(2,16));
 
     all_traf.in = 0;
     all_traf.out = 0;

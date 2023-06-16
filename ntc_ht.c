@@ -22,6 +22,16 @@
 
 */
 
+int set_htsize(int n) {
+int p;
+    /* Looking for the prime numer in the range [n;2*n] */
+    for (p=n; p<(2*n); p++) {
+        if (primality_test(p))
+            break;
+    }
+    return p;
+}
+
 void destroy_hashtable(hashtable *ht) {
 void *tmp;
 HashKey *hkey;

@@ -5,6 +5,8 @@
 #define CYAN_TEXT    "\033[36m"
 #define GREEN_TEXT   "\033[32m"
 
+bool primality_test(int);
+int mod(int, int);
 void quit(char *);
 int get_from_packet(packet *, u_int8_t, u_int8_t);
 u_int8_t detect_direction(u_int32_t, u_int32_t, u_int32_t);
