@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 double fill_factor;
 Queue *new_queue_head;
 hashtable *ht_found;
+u_int32_t hash;
 
     key_exit = 0;
     db = 0;
@@ -70,7 +71,9 @@ hashtable *ht_found;
         sem_wait(&sem_get_pack);
         /* Pulls an element from the head of the queue and puts it onto a hash table */
         /* Queue head address will change */
-        ht_found = locate_in_hashtable(ht_head, queue_head);
+
+        hash = get_hash(queue_head->srcIP, queue_head->dstIP, htsize);
+        ht_found = locate_hash(ht_head, hash);
         if (ht_found)
             update_hashtable(ht_found, queue_head);
         else {
@@ -79,7 +82,7 @@ hashtable *ht_found;
                 htsize  = set_htsize(htsize*2); /* 6 (!) */
                 ht_head = rehash(ht_head, htsize);
             }
-                ht_head = append_to_hashtable(ht_head, queue_head);
+                ht_head = append_to_hashtable(ht_head, hash, queue_head, 1);
         }
         new_queue_head = queue_head->next;
         new_queue_head->prev = NULL;

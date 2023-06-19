@@ -1,11 +1,10 @@
-u_int32_t get_hash(u_int32_t, u_int32_t);
+u_int32_t get_hash(u_int32_t, u_int32_t, int);
 hashtable * locate_hash(hashtable *, u_int32_t);
 HashKey * locate_hkey(hashtable *, Queue *);
 void update_hashkey(HashKey *, Queue *);
-void append_new_hashkey(hashtable *, Queue *);
-hashtable * append_to_hashtable(hashtable *, u_int32_t, Queue *);
+void append_new_hashkey(hashtable *, Queue *, u_int32_t);
+hashtable * append_to_hashtable(hashtable *, u_int32_t, Queue *, u_int32_t);
 void destroy_hashtable(hashtable *);
-hashtable * locate_in_hashtable(hashtable *, Queue *);
 void update_hashtable(hashtable *, Queue *);
 int set_htsize(int);
 int count_records_hashtable(hashtable *);

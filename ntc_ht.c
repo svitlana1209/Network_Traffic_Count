@@ -49,15 +49,6 @@ HashKey *hkey;
     }
 }
 
-hashtable * locate_in_hashtable(hashtable *ht_head, Queue *queue_head) {
-hashtable *ht_found;
-u_int32_t hash;
-
-    hash = get_hash(queue_head->srcIP, queue_head->dstIP);
-    ht_found = locate_hash(ht_head, hash);
-    return ht_found;
-}
-
 void update_hashtable(hashtable *ht_found, Queue *queue_head) {
 HashKey *hkey_found;
 
@@ -65,12 +56,12 @@ HashKey *hkey_found;
     if (hkey_found)
         update_hashkey(hkey_found, queue_head);
     else
-        append_new_hashkey(ht_found, queue_head);
+        append_new_hashkey(ht_found, queue_head, 1);
 }
 
-u_int32_t get_hash(u_int32_t s, u_int32_t d) {
+u_int32_t get_hash(u_int32_t s, u_int32_t d, int htsize) {
 
-    return (s%HTSIZE + d%HTSIZE)%HTSIZE;
+    return (s%htsize + d%htsize)%htsize;
 }
 
 hashtable * locate_hash(hashtable *ht_head, u_int32_t hash) {
@@ -105,7 +96,7 @@ void update_hashkey(HashKey *hkey, Queue *q) {
     hkey->packs = hkey->packs + 1;
 }
 
-void append_new_hashkey(hashtable *ht_found, Queue *q) {
+void append_new_hashkey(hashtable *ht_found, Queue *q, u_int32_t packs) {
 HashKey *new_hkey, *current_hkey, *tmp_hkey;
 u_int8_t flag;
 
@@ -118,7 +109,7 @@ u_int8_t flag;
     new_hkey->srcIP = q->srcIP;
     new_hkey->dstIP = q->dstIP;
     new_hkey->vol   = q->vol;
-    new_hkey->packs = 1;
+    new_hkey->packs = packs;
     do {
         if (compare_keys(current_hkey->srcIP, current_hkey->dstIP, new_hkey->srcIP, new_hkey->dstIP) < 0) {
             /* new_hkey < current_hkey */
@@ -150,14 +141,12 @@ u_int8_t flag;
     } while (flag != 1);
 }
 
-hashtable * append_to_hashtable(hashtable *ht_head, Queue *q) {
+hashtable * append_to_hashtable(hashtable *ht_head, u_int32_t hash, Queue *q, u_int32_t packs) {
 hashtable *tmp_ht, *current_ht, *new_ht_row;
 HashKey *new_hkey;
-u_int32_t hash;
 u_int8_t flag;
 
     flag = 0;
-    hash = get_hash(q->srcIP, q->dstIP);
 
     new_ht_row = (hashtable *)malloc(sizeof(hashtable));
     new_ht_row->hash = hash;
@@ -172,7 +161,7 @@ u_int8_t flag;
     new_hkey->srcIP = q->srcIP;
     new_hkey->dstIP = q->dstIP;
     new_hkey->vol   = q->vol;
-    new_hkey->packs = 1;
+    new_hkey->packs = packs;
     new_hkey->next  = NULL;
     new_hkey->prev  = NULL;
 
@@ -221,5 +210,46 @@ hashtable *tmp;
     recs = 0;
     for (tmp=ht; tmp!=NULL; tmp=tmp->next) recs++;
     return recs;
+}
+
+hashtable * rehash(hashtable *ht, int htsize) {
+u_int32_t hash;
+void *tmp;
+HashKey *hkey;
+hashtable *new_ht, ht_found;
+
+    new_ht = NULL;
+    q = (Queue *)malloc(sizeof(Queue));
+    q->next = NULL;
+    q->prev = NULL;
+
+    while (ht) {
+        hkey = ht->ptr_to_hashkey;
+        while (hkey) {
+            q->year  = hkey->year;
+            q->month = hkey->month;
+            q->day   = hkey->day;
+            q->srcIP = hkey->srcIP;
+            q->dstIP = hkey->dstIP;
+            q->vol   = hkey->vol;
+            hash = get_hash(q->srcIP, q->dstIP, htsize);
+            ht_found = locate_hash(new_ht, hash);
+            if (ht_found) {
+                if (locate_hkey(ht_found, q) == NULL)
+                    append_new_hashkey(ht_found, q, hkey->packs);
+            }
+            else
+                new_ht = append_to_hashtable(new_ht, hash, q, hkey->packs);
+
+            tmp = hkey->next;
+            free(hkey);
+            hkey = tmp;
+        }
+        tmp = ht->next;
+        free(ht);
+        ht = tmp;
+    }
+    free(q);
+    return new_ht;
 }
 
