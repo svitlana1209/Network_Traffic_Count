@@ -14,6 +14,7 @@
 #include <ntc_tools.h>
 #include <ntc_queue.h>
 #include <ntc_ht.h>
+#include <ntc_dyn.h>
 
 FILE *t_tty;
 struct termios init_term;
