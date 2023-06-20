@@ -43,4 +43,12 @@ typedef struct total_trafic {
     long long int	out;
 } total;
 
+typedef struct dyn {
+    u_int32_t	src_x;
+    u_int32_t	dst_y;
+    u_int32_t	src_y;
+    u_int32_t	dst_x;
+    u_int32_t	vol1;
+    u_int32_t	vol2;
+} dyn_struct;
 

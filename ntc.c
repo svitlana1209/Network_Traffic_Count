@@ -24,6 +24,7 @@ packet *pack;
 Queue *queue_head, *queue_tail;
 hashtable *ht_head;
 total all_traf;
+dyn_struct dyn;
 u_int32_t ip;
 
 int main(int argc, char *argv[]) {
@@ -146,7 +147,7 @@ void call_exit() {
 
     if (db == 1) {
         printf(" %sUploading data to database ...%s\n", WHITE_TEXT, RESET);
-        upload_to_databes(ht_head);
+        upload_to_database(ht_head);
         printf(" %sDone%s\n", GREEN_TEXT, RESET)
     }
     destroy_queue(queue_head);
@@ -192,6 +193,7 @@ Queue *tmp;
 }
 
 void * display_info(void *head) {
+hashtable *ht;
 
     if (pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL) != 0)
         quit ("Thread setcancelstate failed.");
@@ -201,8 +203,8 @@ void * display_info(void *head) {
     ht = (hashtable *)(head);
     while(1) {
         sem_wait(&sem_ht);
-        dyn_struct = get_dynamic_info(ht);
-        display_dynamic_info(t_tty, dyn_struct);
+        get_dynamic_info(ht, &dyn);
+        display_dynamic_info(t_tty, *dyn, *all_traf);
     }
     pthread_exit(NULL);
 }
