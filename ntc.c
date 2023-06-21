@@ -205,7 +205,7 @@ hashtable *ht;
     while(1) {
         sem_wait(&sem_ht);
         get_dynamic_info(ht, &dyn);
-        display_dynamic_info(t_tty, *dyn, *all_traf);
+        display_dynamic_info(t_tty, &dyn, &all_traf);
     }
     pthread_exit(NULL);
 }
