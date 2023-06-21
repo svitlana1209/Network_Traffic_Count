@@ -32,8 +32,8 @@ hashtable *ht;
     while (ht) {
         hkey = ht->ptr_to_hashkey;
         while (hkey) {
-            if (hkey->vol > max) {
-                max = hkey->vol;
+            if (hkey->vol > max_vol) {
+                max_vol = hkey->vol;
                 hkey_max = hkey;
             }
             hkey = hkey->next;
