@@ -84,7 +84,7 @@ u_int32_t hash;
                 htsize  = set_htsize(htsize*2); /* 6 (!) */
                 ht_head = rehash(ht_head, htsize);
             }
-                ht_head = append_to_hashtable(ht_head, hash, queue_head, 1);
+            ht_head = append_to_hashtable(ht_head, hash, queue_head, 1);
         }
         new_queue_head = queue_head->next;
         new_queue_head->prev = NULL;
@@ -205,7 +205,7 @@ hashtable *ht;
     while(1) {
         sem_wait(&sem_ht);
         get_dynamic_info(ht, &dyn);
-        display_dynamic_info(t_tty, &dyn, &all_traf);
+        display_dynamic_info(&dyn, &all_traf);
     }
     pthread_exit(NULL);
 }
