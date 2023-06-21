@@ -24,8 +24,6 @@ Queue *q;
     return q;
 }
 
-/* ----- */
-
 void destroy_queue (Queue *queue_head) {
 Queue *q, *t;
 
@@ -90,9 +88,9 @@ u_int8_t direction, i, brdcast;
         }
     }
     if (direction == 0)
-        traf->out = traf->out + pack->size;
+        traf.out = traf.out + pack->size;
     else
-        traf->in = traf->in + pack->size;
+        traf.in = traf.in + pack->size;
 
     if (ip_s != 0) {
         (void) time(&the_time);
@@ -122,4 +120,3 @@ u_int8_t direction, i, brdcast;
     return new_tail;
 }
 
-/* ----- */
