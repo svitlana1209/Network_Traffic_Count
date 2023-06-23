@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <ntc.h>
 #include <ntc_ht.h>
 #include <ntc_tools.h>
@@ -65,16 +66,13 @@ u_int32_t get_hash(u_int32_t s, u_int32_t d, int htsize) {
 }
 
 hashtable * locate_hash(hashtable *ht_head, u_int32_t hash) {
-hashtable *ht_found, *tmp;
+hashtable *tmp;
 
-    ht_found = NULL;
     for (tmp=ht_head; tmp!=NULL; tmp=tmp->next) {
-        if (tmp->hash == hash) {
-            ht_found = tmp;
-            break;
-        }
+        if (tmp->hash == hash)
+            return tmp;
     }
-    return ht_found;
+    return NULL;
 }
 
 HashKey * locate_hkey(hashtable *ht, Queue *q) {
@@ -82,7 +80,7 @@ HashKey *hkey_found, *tmp;
 
     hkey_found = NULL;
     for (tmp=ht->ptr_to_hashkey; tmp!=NULL; tmp=tmp->next) {
-        if (tmp->srcIP==q->srcIP && tmp->dstIP==q->dstIP && tmp->year==q->year && tpm->month==q->month && tmp->day==q->day) {
+        if (tmp->srcIP==q->srcIP && tmp->dstIP==q->dstIP && tmp->year==q->year && tmp->month==q->month && tmp->day==q->day) {
             hkey_found = tmp;
             break;
         }
@@ -104,7 +102,7 @@ u_int8_t flag;
     current_hkey = ht_found->ptr_to_hashkey;
     new_hkey = (HashKey *)malloc(sizeof(HashKey));
     new_hkey->year  = q->year;
-    new_hkey->mont  = q->month;
+    new_hkey->month = q->month;
     new_hkey->day   = q->day;
     new_hkey->srcIP = q->srcIP;
     new_hkey->dstIP = q->dstIP;
@@ -216,7 +214,8 @@ hashtable * rehash(hashtable *ht, int htsize) {
 u_int32_t hash;
 void *tmp;
 HashKey *hkey;
-hashtable *new_ht, ht_found;
+hashtable *new_ht, *ht_found;
+Queue *q;
 
     new_ht = NULL;
     q = (Queue *)malloc(sizeof(Queue));

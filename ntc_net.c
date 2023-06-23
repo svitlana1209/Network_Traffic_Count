@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ifaddrs.h>
+#include <stdbool.h>
 #include <ntc.h>
 #include <ntc_net.h>
 #include <ntc_tools.h>
@@ -50,7 +51,7 @@ struct sockaddr_in src_addr;
 
     p->size = recvfrom(id_socket, p->buff, sizeof(p->buff), 0, (struct sockaddr *)&src_addr, &fromlen);
     if (p->size < 0) {
-        free(&(*pack));
+        free(&(*p));
         close(id_socket);
         quit("Recieve socket error");
     }
@@ -111,5 +112,49 @@ char s[4];
     ip=ip+(0xFFFFFFFF & (atoi(s)<<y));
 
     return ip;
+}
+
+/*
+   Converts the IP address from integer (little-endian) to string "aaa.bbb.ccc.ddd"
+*/
+void intaddr_to_string(u_int32_t d, u_int8_t *addr) {
+int y, p, length, octet, rest, z;
+char m[4];
+
+    z=length = 0;
+    y = 24;
+    while (y >= 0) {
+	    memset (m,0,3);
+	    p = octet = 0x000000FF & (d >> y);
+	    y=y-8;
+	    length = 0;
+	if (octet == 0) {
+		addr[z] = '0';
+		z++;
+	}
+	else {
+	    while (p != 0) {
+		length++;
+		p = p / 10;
+	    }
+	    for (p = 0; p < length; p++) {
+		rest = octet % 10;
+		octet = octet / 10;
+		m[p] = rest + '0';
+	    }
+	    m[p]='\0';
+	    p--;
+	    while (p >= 0) {
+		addr[z] = m[p];
+		p--;
+		z++;
+	    }
+	}
+	if (y >= 0) {
+		addr[z] = '.'; 
+		z++;
+	}
+    }
+	addr[z] = '\0';
 }
 

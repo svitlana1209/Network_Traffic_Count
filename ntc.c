@@ -6,8 +6,8 @@
 #include <sys/socket.h>
 #include <semaphore.h>
 #include <net/if.h>
+#include <stdbool.h>
 #include <termios.h>
-#include <term.h>
 #include <math.h>
 #include <ntc.h>
 #include <ntc_net.h>
@@ -15,6 +15,7 @@
 #include <ntc_queue.h>
 #include <ntc_ht.h>
 #include <ntc_dyn.h>
+#include <ntc_terminal.h>
 
 FILE *t_tty;
 struct termios init_term;
@@ -56,7 +57,7 @@ u_int32_t hash;
             if (strcmp(argv[2],"db") == 0)
                 db = 1;
             else
-                quit("Specify either 'db' or nothing as the second argument")
+                quit("Specify either 'db' or nothing as the second argument");
             break;
         }
         default: {
@@ -96,7 +97,7 @@ u_int32_t hash;
     return 0;
 }
 
-void call_init() {
+void call_init(){
 
     if (!(t_tty  = fopen ("/dev/tty","r")))
         quit("tty access error");
@@ -123,10 +124,12 @@ void call_init() {
 
     if ((pthread_create(&thread_display_dyn, NULL, display_info, (void *)(ht_head))) != 0)
         quit("Thread creation failed (display_dyn)");
+    print_head();
 }
 
 void call_exit() {
 
+    finish_output();
     restore_terminal(&init_term, t_tty);
 
     if ((pthread_join(thread_wait_key, NULL)) != 0)
@@ -144,12 +147,12 @@ void call_exit() {
 
     printf("\n %sExit. Please wait, the report is being generated ...%s\n", WHITE_TEXT, RESET);
     generate_report(ht_head);
-    printf(" The report was generated: %sreport.txt%s\n", GREEN_TEXT, RESET)
+    printf(" The report was generated: %sreport.txt%s\n", GREEN_TEXT, RESET);
 
     if (db == 1) {
         printf(" %sUploading data to database ...%s\n", WHITE_TEXT, RESET);
         upload_to_database(ht_head);
-        printf(" %sDone%s\n", GREEN_TEXT, RESET)
+        printf(" %sDone%s\n", GREEN_TEXT, RESET);
     }
     destroy_queue(queue_head);
     destroy_ht(ht_head);

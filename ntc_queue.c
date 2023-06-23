@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 #include <ntc.h>
 #include <ntc_tools.h>
 #include <ntc_queue.h>
@@ -88,9 +89,9 @@ u_int8_t direction, i, brdcast;
         }
     }
     if (direction == 0)
-        traf.out = traf.out + pack->size;
+        traf->out = traf->out + pack->size;
     else
-        traf.in = traf.in + pack->size;
+        traf->in = traf->in + pack->size;
 
     if (ip_s != 0) {
         (void) time(&the_time);
@@ -106,9 +107,9 @@ u_int8_t direction, i, brdcast;
         new_tail = (Queue *)malloc(sizeof(Queue));
         new_tail->next = NULL;
         new_tail->prev = tail;
-        new_tail->year  = year;
-        new_tail->month = month;
-        new_tail->day   = day;
+        new_tail->year  = 0;
+        new_tail->month = 0;
+        new_tail->day   = 0;
         new_tail->srcIP = 0;
         new_tail->dstIP = 0;
         new_tail->vol   = 0;

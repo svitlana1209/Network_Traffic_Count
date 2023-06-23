@@ -54,3 +54,12 @@ typedef struct dyn {
     u_int32_t	packs2;
 } dyn_struct;
 
+void call_init();
+void call_exit();
+void generate_report(hashtable *);
+void destroy_queue(Queue *);
+void destroy_ht(hashtable *);
+void upload_to_database(hashtable *);
+void * waiting_for_key (void *);
+void * process_queue(void *);
+void * display_info(void *);
