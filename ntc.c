@@ -16,6 +16,8 @@
 #include <ntc_ht.h>
 #include <ntc_dyn.h>
 #include <ntc_terminal.h>
+#include <ntc_reports.h>
+#include <ntc_db.h>
 
 FILE *t_tty;
 struct termios init_term;
@@ -39,34 +41,29 @@ u_int32_t hash;
     db = 0;
     network_interface_type = -1;
 
-    switch (argc) {
-        case 2: {
-            network_interface_idx = if_nametoindex(argv[1]);
-            if (network_interface_idx == 0)
-                quit("Network interface name not found");
-            break;
-            if ((strstr(argv[1], "enp") != NULL) || (strstr(argv[1], "eth") != NULL))
-                network_interface_type = 0;
-            if (strstr(argv[1], "ppp") != NULL)
-                network_interface_type = 1;
-            if (network_interface_type < 0)
-                quit("Set the name of network interface. For example: enp3s0 or eth1 or ppp0.");
-            ip = get_interface_ip(argv[1]);
-        }
-        case 3: {
-            if (strcmp(argv[2],"db") == 0)
-                db = 1;
-            else
-                quit("Specify either 'db' or nothing as the second argument");
-            break;
-        }
-        default: {
-            printf("Usage example: ./ntc enp3s0\n");
-            printf("           or: ./ntc enp3s0 db\n");
-            printf("        where: 'enp3s0' - network interface name\n");
-            printf("               'db' - save data to database\n");
-            exit(0);
-        }
+    if (argc < 2) {
+        printf("Usage example: ./ntc enp3s0\n");
+        printf("           or: ./ntc enp3s0 db\n");
+        printf("        where: 'enp3s0' - network interface name\n");
+        printf("               'db' - save data to database\n");
+        exit(0);
+    }
+    network_interface_idx = if_nametoindex(argv[1]);
+    if (network_interface_idx == 0)
+        quit("Network interface name not found");
+    if (strstr(argv[1], "enp")!=NULL || strstr(argv[1], "eth")!=NULL)
+        network_interface_type = 0;
+    if (strstr(argv[1], "ppp")!=NULL)
+        network_interface_type = 1;
+    if (network_interface_type < 0)
+        quit("Set the name of network interface. For example: enp3s0 or eth1 or ppp0.");
+    ip = get_interface_ip(argv[1]);
+
+    if (argc == 3) {
+        if (strcmp(argv[2],"db") == 0)
+            db = 1;
+        else
+            quit("Specify either 'db' or nothing as the second argument");
     }
     call_init();
     while (key_exit == 0) {
@@ -122,7 +119,7 @@ void call_init(){
     if ((pthread_create(&thread_queue, NULL, process_queue, (void *)(queue_tail))) != 0)
         quit("Thread creation failed (queue)");
 
-    if ((pthread_create(&thread_display_dyn, NULL, display_info, (void *)(ht_head))) != 0)
+    if ((pthread_create(&thread_display_dyn, NULL, display_info, NULL ) ) != 0)
         quit("Thread creation failed (display_dyn)");
     print_head();
 }
@@ -130,6 +127,14 @@ void call_init(){
 void call_exit() {
 
     finish_output();
+    printf("\n %sExit. Please wait, the report is being generated ...%s\n", WHITE_TEXT, RESET);
+    generate_report(ht_head);
+    printf(" The report was generated: %sreport.txt%s\n", GREEN_TEXT, RESET);
+    if (db == 1) {
+        printf(" %sUploading data to the database ...%s\n", WHITE_TEXT, RESET);
+        upload_to_database(ht_head);
+        printf(" %sDone%s\n", GREEN_TEXT, RESET);
+    }
     restore_terminal(&init_term, t_tty);
 
     if ((pthread_join(thread_wait_key, NULL)) != 0)
@@ -145,17 +150,8 @@ void call_exit() {
     if ((pthread_join(thread_queue, NULL)) != 0)
         quit("Thread join failed (queue)");
 
-    printf("\n %sExit. Please wait, the report is being generated ...%s\n", WHITE_TEXT, RESET);
-    generate_report(ht_head);
-    printf(" The report was generated: %sreport.txt%s\n", GREEN_TEXT, RESET);
-
-    if (db == 1) {
-        printf(" %sUploading data to database ...%s\n", WHITE_TEXT, RESET);
-        upload_to_database(ht_head);
-        printf(" %sDone%s\n", GREEN_TEXT, RESET);
-    }
     destroy_queue(queue_head);
-    destroy_ht(ht_head);
+    destroy_hashtable(ht_head);
     sem_destroy(&sem_get_pack);
     sem_destroy(&sem_ht);
     close(id_socket);
@@ -167,7 +163,6 @@ FILE *terminal;
     terminal = (FILE *)(ptr_tty);
     while (1) {
         if (fgetc(terminal) == 'q') {
-            printf ("\n %s`q` was pressed)%s\n", WHITE_TEXT, RESET);
             key_exit = 1;
             break;
         }
@@ -196,19 +191,21 @@ Queue *tmp;
     pthread_exit(NULL);
 }
 
-void * display_info(void *head) {
-hashtable *ht;
+void * display_info() {
 
     if (pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL) != 0)
         quit ("Thread setcancelstate failed.");
     if (pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL) != 0)
         quit ("Thread setcanceltype failed.");
 
-    ht = (hashtable *)(head);
     while(1) {
         sem_wait(&sem_ht);
-        get_dynamic_info(ht, &dyn);
+        get_dynamic_info(get_ht_addr(), &dyn);
         display_dynamic_info(&dyn, &all_traf);
     }
     pthread_exit(NULL);
+}
+
+hashtable * get_ht_addr() {
+    return ht_head;
 }

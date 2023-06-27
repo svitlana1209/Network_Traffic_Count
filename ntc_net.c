@@ -20,7 +20,7 @@ int listen_interface(int if_idx) {
     struct sockaddr_ll packet_raw_socket;
 
     if ((id_socket = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) < 0)
-        quit("Failed to create the socket");
+        quit("Socket access error");
 
     memset(&packet_raw_socket, 0, sizeof(packet_raw_socket));
 
@@ -30,7 +30,7 @@ int listen_interface(int if_idx) {
     sock_len = sizeof(packet_raw_socket);
 
     if (bind(id_socket, (struct sockaddr *) &packet_raw_socket, sock_len) < 0)
-        quit("Failed to bind to the socket");
+        quit("Socket bind error");
 
     return id_socket;
 }
@@ -49,7 +49,7 @@ struct sockaddr_in src_addr;
     src_addr.sin_port = htons(0);
     fromlen = sizeof(src_addr);
 
-    p->size = recvfrom(id_socket, p->buff, sizeof(p->buff), 0, (struct sockaddr *)&src_addr, &fromlen);
+    p->size = recvfrom(id_socket, p->buff, sizeof(p->buff), 0, (struct sockaddr *)&src_addr, (socklen_t *)&fromlen);
     if (p->size < 0) {
         free(&(*p));
         close(id_socket);
@@ -124,37 +124,37 @@ char m[4];
     z=length = 0;
     y = 24;
     while (y >= 0) {
-	    memset (m,0,3);
-	    p = octet = 0x000000FF & (d >> y);
-	    y=y-8;
-	    length = 0;
-	if (octet == 0) {
-		addr[z] = '0';
-		z++;
-	}
-	else {
-	    while (p != 0) {
-		length++;
-		p = p / 10;
-	    }
-	    for (p = 0; p < length; p++) {
-		rest = octet % 10;
-		octet = octet / 10;
-		m[p] = rest + '0';
-	    }
-	    m[p]='\0';
-	    p--;
-	    while (p >= 0) {
-		addr[z] = m[p];
-		p--;
-		z++;
-	    }
-	}
-	if (y >= 0) {
-		addr[z] = '.'; 
-		z++;
-	}
+        memset (m,0,3);
+        p = octet = 0x000000FF & (d >> y);
+        y=y-8;
+        length = 0;
+        if (octet == 0) {
+            addr[z] = '0';
+            z++;
+        }
+        else {
+            while (p != 0) {
+                length++;
+                p = p / 10;
+            }
+            for (p = 0; p < length; p++) {
+                rest = octet % 10;
+                octet = octet / 10;
+                m[p] = rest + '0';
+            }
+            m[p]='\0';
+            p--;
+            while (p >= 0) {
+                addr[z] = m[p];
+                p--;
+                z++;
+            }
+        }
+        if (y >= 0) {
+            addr[z] = '.'; 
+            z++;
+        }
     }
-	addr[z] = '\0';
+    addr[z] = '\0';
 }
 

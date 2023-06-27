@@ -39,18 +39,18 @@ void restore_terminal(struct termios *init_t, FILE *cons) {
 
 void print_head() {
 
-    printf (" Total traffic(MB):\n");
+    printf (" Total traffic:\n");
     printf (" IN  : \n");
     printf (" OUT : \n");
-    printf (" -----------------------------------------------------------------------------\n");
-    printf (" Max activity:  src               dst               vol(MB)        packs\n\n\n");
-    printf (" -----------------------------------------------------------------------------\n");
+    printf (" ---------------------------------------------------------------------------------\n");
+    printf (" Max activity:             src              dst                  vol        packs\n\n\n");
+    printf (" ---------------------------------------------------------------------------------\n");
     printf (" Press 'q' for quit ...\n");
 }
 
 void finish_output() {
 
-    putp(tparm(tigetstr("cup"), 9, 0));
+    putp(tparm(tigetstr("cup"), 10, 0));
 }
 
 void display_dynamic_info(dyn_struct *dyn, total *trf) {
@@ -58,20 +58,21 @@ char *cursor;
 u_int8_t ip_s[16], ip_d[16];
 
     cursor = tigetstr("cup");
-    putp (tparm (cursor,2,8));
+    putp (tparm (cursor,1,8));
     printf ("%s%lld%s\n", CYAN_TEXT, trf->in, RESET);
 
-    putp (tparm (cursor,3,8));
+    putp (tparm (cursor,2,8));
     printf ("%s%lld%s\n", CYAN_TEXT, trf->out, RESET);
 
     intaddr_to_string(dyn->src_x, ip_s);
     intaddr_to_string(dyn->dst_y, ip_d);
-    putp (tparm (cursor,6,17));
-    printf ("%s%15s       %15s  %20d    %18d%s\n", GREEN_TEXT, ip_s, ip_d, dyn->vol1, dyn->packs1, RESET);
+    putp (tparm (cursor,5,14));
+    printf ("%s%16s %16s %20d %12d %s\n", GREEN_TEXT, ip_s, ip_d, dyn->vol1, dyn->packs1, RESET);
 
     intaddr_to_string(dyn->src_y, ip_s);
     intaddr_to_string(dyn->dst_x, ip_d);
-    putp (tparm (cursor,7,17));
-    printf ("%s%15s       %15s  %20d    %18d%s\n", GREEN_TEXT, ip_s, ip_d, dyn->vol2, dyn->packs2, RESET);
+    putp (tparm (cursor,6,14));
+    printf ("%s%16s %16s %20d %12d %s\n", GREEN_TEXT, ip_s, ip_d, dyn->vol2, dyn->packs2, RESET);
+
 }
 

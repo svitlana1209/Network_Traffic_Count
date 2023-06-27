@@ -53,25 +53,26 @@ time_t the_time;
 u_int32_t ip_s, ip_d, protocol;
 u_int8_t direction, i, brdcast;
 
-    ip_s = 0;
-    ip_d = 0;
     brdcast = 1;
-    direction = 1;  /* incoming traffic*/
+    direction = 0;  /* incoming traffic*/
 
     switch (if_type) {
         case 0: {
-            protocol = get_from_packet(pack, 12, 2);
             for (i=0; i<6; i++) {
                 if (pack->buff[i] != 0xff) {
                     brdcast = 0;
                     break;
                 }
             }
+            protocol = get_from_packet(pack, 12, 2);
             switch (protocol) {
                 case 0x806: {
                     /* ARP */
-                    ip_s = get_from_packet(pack, 28, 4);
-                    ip_d = get_from_packet(pack, 38, 4);
+                    if (brdcast == 1) {
+                        ip_s = get_from_packet(pack, 28, 4);
+                        ip_d = get_from_packet(pack, 38, 4);
+                    }
+                    break;
                 }
                 case 0x800: {
                     /* IPv4 */
@@ -79,16 +80,19 @@ u_int8_t direction, i, brdcast;
                     ip_d = get_from_packet(pack, 30, 4);
                     if (brdcast == 0)
                         direction = detect_direction(ip_s, ip_d, ip_if);
+                    break;
                 }
             }
+            break;
         }
         case 1: {
             ip_s = get_from_packet(pack, 12, 4);
             ip_d = get_from_packet(pack, 16, 4);
             direction = detect_direction(ip_s, ip_d, ip_if);
+            break;
         }
     }
-    if (direction == 0)
+    if (direction == 1)
         traf->out = traf->out + pack->size;
     else
         traf->in = traf->in + pack->size;
@@ -120,4 +124,3 @@ u_int8_t direction, i, brdcast;
 
     return new_tail;
 }
-
