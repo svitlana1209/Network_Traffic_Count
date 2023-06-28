@@ -102,7 +102,7 @@ u_int8_t direction, i, brdcast;
         time_ptr = localtime(&the_time);
         tail = queue_tail;
         tail->year  = (u_int16_t)(1900 + time_ptr->tm_year);
-        tail->month = (u_int8_t)(time_ptr->tm_mon);
+        tail->month = ((u_int8_t)(time_ptr->tm_mon)+1);
         tail->day   = (u_int8_t)(time_ptr->tm_mday);
         tail->srcIP = ip_s;
         tail->dstIP = ip_d;

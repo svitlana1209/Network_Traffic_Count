@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <termios.h>
 #include <math.h>
+#include <time.h>
 #include <ntc.h>
 #include <ntc_net.h>
 #include <ntc_tools.h>
@@ -30,6 +31,9 @@ hashtable *ht_head;
 total all_traf;
 dyn_struct dyn;
 u_int32_t ip;
+struct tm *time_ptr;
+time_t the_time;
+char start_time[20];
 
 int main(int argc, char *argv[]) {
 double fill_factor;
@@ -48,6 +52,11 @@ u_int32_t hash;
         printf("               'db' - save data to database\n");
         exit(0);
     }
+
+    (void) time (&the_time);
+    time_ptr = localtime (&the_time);
+    strftime(start_time, 20, "%Y-%m-%d %H-%M-%S", time_ptr);
+
     network_interface_idx = if_nametoindex(argv[1]);
     if (network_interface_idx == 0)
         quit("Network interface name not found");
@@ -126,16 +135,13 @@ void call_init(){
 
 void call_exit() {
 
-    finish_output();
-    printf("\n %sExit. Please wait, the report is being generated ...%s\n", WHITE_TEXT, RESET);
-    generate_report(ht_head);
-    printf(" The report was generated: %sreport.txt%s\n", GREEN_TEXT, RESET);
+    generate_report(ht_head, &all_traf, ip, network_interface_idx, start_time);
+    restore_terminal(&init_term, t_tty);
     if (db == 1) {
         printf(" %sUploading data to the database ...%s\n", WHITE_TEXT, RESET);
         upload_to_database(ht_head);
         printf(" %sDone%s\n", GREEN_TEXT, RESET);
     }
-    restore_terminal(&init_term, t_tty);
 
     if ((pthread_join(thread_wait_key, NULL)) != 0)
         quit("Thread join failed (wait key)");

@@ -48,11 +48,6 @@ void print_head() {
     printf (" Press 'q' for quit ...\n");
 }
 
-void finish_output() {
-
-    putp(tparm(tigetstr("cup"), 10, 0));
-}
-
 void display_dynamic_info(dyn_struct *dyn, total *trf) {
 char *cursor;
 u_int8_t ip_s[16], ip_d[16];

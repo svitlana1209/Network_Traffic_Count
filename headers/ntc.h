@@ -56,7 +56,6 @@ typedef struct dyn {
 
 void call_init();
 void call_exit();
-void generate_report(hashtable *);
 void destroy_queue(Queue *);
 void upload_to_database(hashtable *);
 void * waiting_for_key (void *);

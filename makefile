@@ -20,8 +20,8 @@ $(TARGET): $(OBJ)
 ntc_db.o: ntc_db.c $(addprefix $(HDR)/, ntc.h) $(addprefix $(HDR)/, ntc_db.h)
 	$(CC) $(OPT) $(CFLAGS) -c -std=c99 ntc_db.c 
 
-ntc_reports.o: ntc_reports.c $(addprefix $(HDR)/, ntc.h) $(addprefix $(HDR)/, ntc_reports.h)
-	$(CC) $(OPT) $(CFLAGS) -c -std=c99 ntc_reports.c 
+ntc_reports.o: ntc_reports.c $(addprefix $(HDR)/, ntc.h) $(addprefix $(HDR)/, ntc_reports.h) $(addprefix $(HDR)/, ntc_tools.h) $(addprefix $(HDR)/, ntc_net.h)
+	$(CC) $(OPT) $(CFLAGS) $(POSIX1993) -c -std=c99 ntc_reports.c 
 
 ntc_terminal.o: ntc_terminal.c $(addprefix $(HDR)/, ntc.h) $(addprefix $(HDR)/, ntc_terminal.h) $(addprefix $(HDR)/, ntc_net.h) $(addprefix $(HDR)/, ntc_tools.h)
 	$(CC) $(OPT) $(CFLAGS) $(POSIX1993) -c -std=c99 ntc_terminal.c 
