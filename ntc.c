@@ -25,7 +25,6 @@ struct termios init_term;
 sem_t sem_get_pack, sem_ht;
 int key_exit, db, id_socket, network_interface_idx, network_interface_type, htsize;
 pthread_t thread_wait_key, thread_queue, thread_display_dyn;
-packet *pack;
 Queue *queue_head, *queue_tail;
 hashtable *ht_head;
 total all_traf;
@@ -178,6 +177,7 @@ FILE *terminal;
 
 void * process_queue(void *tail) {
 Queue *tmp;
+packet pack;
 
     if (pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL) != 0)
         quit ("Thread setcancelstate failed");
@@ -187,9 +187,8 @@ Queue *tmp;
     id_socket = listen_interface(network_interface_idx);
     queue_tail = (Queue *)(tail);
     while(1) {
-        pack = receive_from_socket(id_socket);
-        tmp = add_to_queue(queue_tail, pack, network_interface_type, &all_traf, ip);
-        free(pack);
+        receive_from_socket(id_socket, &pack);
+        tmp = add_to_queue(queue_tail, &pack, network_interface_type, &all_traf, ip);
         if (tmp != queue_tail)        /* if pack was added to queue */
             sem_post(&sem_get_pack);  /* then set the semaphore */
         queue_tail = tmp;

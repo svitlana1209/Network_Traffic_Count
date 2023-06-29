@@ -35,12 +35,10 @@ int listen_interface(int if_idx) {
     return id_socket;
 }
 
-packet * receive_from_socket(int id_socket) {
-packet *p;
+void receive_from_socket(int id_socket, packet *p) {
 size_t fromlen;
 struct sockaddr_in src_addr;
 
-    p = (packet *) malloc(sizeof(*p));
     memset(&(*p), 0, sizeof(*p));
     memset(&src_addr, 0, sizeof(src_addr));
 
@@ -51,11 +49,9 @@ struct sockaddr_in src_addr;
 
     p->size = recvfrom(id_socket, p->buff, sizeof(p->buff), 0, (struct sockaddr *)&src_addr, (socklen_t *)&fromlen);
     if (p->size < 0) {
-        free(&(*p));
         close(id_socket);
         quit("Recieve socket error");
     }
-    return p;
 }
 
 /*
