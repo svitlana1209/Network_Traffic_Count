@@ -1,13 +1,10 @@
-#include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
-#include <unistd.h>
 #include <string.h>
 #include <ifaddrs.h>
 #include <stdbool.h>

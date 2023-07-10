@@ -1,13 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <stdbool.h>
-#include <termios.h>
 #include <term.h>
 #include <ntc.h>
 #include <ntc_tools.h>

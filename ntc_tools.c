@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <string.h>
-#include <ctype.h>
 #include <stdbool.h>
 #include <ntc.h>
 #include <ntc_tools.h>

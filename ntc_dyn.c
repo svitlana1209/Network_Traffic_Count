@@ -1,6 +1,4 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <sys/types.h>
 #include <ntc.h>
 #include <ntc_dyn.h>
