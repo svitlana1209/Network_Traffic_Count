@@ -214,15 +214,78 @@ long long int poz;
     close(cfg.idx);
 }
 
-void ht_to_db(hashtable *ht, CFG *config) {
-
-}
-
+/*
+    Looks for a key in the IDX tree.
+    Returns the page number and offset from the beginning of the page of the db file, or 0 if there is no key.
+*/
 long long int locate_record(HashKey *hkey, int idx, Page_registry *idx_registry) {
 long long int address;
+u_int32_t *ptr, *count;
+void *addr_page;
+u_int8_t change_page;
+u_int16_t md, i;
+u_int32_t srcIP, dstIP, ymd_field, hkey_ymd, offset_previous, offset_i, next_offset, page_db, offset_db;
+int rez_compare;
+
+    addr_page = (*idx_registry)->page_addr;   /* core IDX page */
+    ptr = count = (u_int32_t *)(addr_page);
+    offset_previous = *(ptr + 4);             /* offset_0 */
+    ptr = ptr + IDX_SERVICE_RECORD_LEN;       /* field YEAR+MONTH+DAY */
+    i = 1;
+    while (i <= (*count)) {
+        ymd_field = *(ptr++);
+        srcIP     = *(ptr++);
+        dstIP     = *(ptr++);
+        offset_i  = *(ptr++);   /* page_lower_level */
+        page_db   = *(ptr++);   /* db_page_number */
+        offset_db = *ptr;       /* db_offset_on_page */
+
+        hkey_ymd  = hkey->year;
+        hkey_ymd  = (hkey_ymd << 16);
+        md = hkey->month;
+        md = (md << 8) | hkey->day;
+        hkey_ymd = hkey_ymd | md;
+
+        rez_compare = compare_keys (ymd_field, srcIP, dstIP, hkey_ymd, hkey->srcIP, hkey->dstIP);
+        if (rez_compare == 0) {
+            address = page_db;
+            address = (address << 32) | offset_db;
+            return address;
+        }
+        else {
+            change_page = 1;
+            if (rez_compare < 0)
+                next_offset = offset_previous;  /* New_key < Key_i, take 'offset' to the left of the Key_i */
+            else {
+                if (*count == i)
+                    next_offset = offset_i;     /* Last key on the page. Take last 'offset', because New_key > Key_last */
+                else {
+                    offset_previous = offset_i; /* The key is not the last, we take the next key from the page */
+                    change_page = 0;
+                    i++;
+                    ptr++;
+                }
+            }
+            if change_page = 1 {
+                if (next_offset == 0)
+                    return 0;                   /* Reached the last level. There is no key in the tree. */
+                else {
+                    addr_page = locate_page_in_registry (&(**idx_registry), next_offset);
+                    if (addr_page == NULL)
+                        addr_page = map_page_from_hdd_to_registry(&(*idx_registry), next_offset, idx, NULL);
+                    ptr = count = (u_int32_t *)(addr_page);
+                    offset_previous = *(ptr + 4);        /* offset_0 */
+                    ptr = ptr + IDX_SERVICE_RECORD_LEN;  /* field YEAR+MONTH+DAY */
+                    i = 1;
+                }
+            }
+        }
+    }
+}
 
 
-    return address;
+void ht_to_db(hashtable *ht, CFG *config) {
+
 }
 
 void update_rec_in_db(CFG *config, long long int poz, HashKey *hkey) {
