@@ -223,7 +223,7 @@ long long int address;
 u_int32_t *ptr, *count;
 void *addr_page;
 u_int8_t change_page;
-u_int16_t md, i;
+u_int16_t i;
 u_int32_t srcIP, dstIP, ymd_field, hkey_ymd, offset_previous, offset_i, next_offset, page_db, offset_db;
 int rez_compare;
 
@@ -240,13 +240,8 @@ int rez_compare;
         page_db   = *(ptr++);   /* db_page_number */
         offset_db = *ptr;       /* db_offset_on_page */
 
-        hkey_ymd  = hkey->year;
-        hkey_ymd  = (hkey_ymd << 16);
-        md = hkey->month;
-        md = (md << 8) | hkey->day;
-        hkey_ymd = hkey_ymd | md;
 
-        rez_compare = compare_keys (ymd_field, srcIP, dstIP, hkey_ymd, hkey->srcIP, hkey->dstIP);
+        rez_compare = compare_keys (ymd_field, srcIP, dstIP, hkey);
         if (rez_compare == 0) {
             address = page_db;
             address = (address << 32) | offset_db;
@@ -283,6 +278,30 @@ int rez_compare;
     }
 }
 
+/*
+    The function returns:
+     0 if the keys are equal
+    -1 if the new key is less than the existing one
+     1 if the new key is greater than the existing one
+*/
+int compare_keys (u_int32_t ymd_db, u_int32_t srcIP_db, u_int32_t dstIP_db, HashKey *hkey) {
+u_int32_t ymd_hkey;
+int ymd, src, dst;
+
+    ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
+
+    ymd = ymd_hkey - ymd_db;
+    src = hkey->srcIP - srcIP_db;
+    dst = hkey->dstIP - dstIP_db;
+
+    if ((ymd == 0) && (src == 0) && (dst == 0)) return 0;
+    if (ymd > 0) return  1;
+    if (ymd < 0) return -1;
+    if (src > 0) return  1;
+    if (src < 0) return -1;
+    if (dst > 0) return  1;
+    if (dst < 0) return -1;
+}
 
 void ht_to_db(hashtable *ht, CFG *config) {
 
