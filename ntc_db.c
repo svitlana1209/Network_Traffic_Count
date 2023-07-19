@@ -265,7 +265,7 @@ int rez_compare;
                 if (next_offset == 0)
                     return 0;                   /* Reached the last level. There is no key in the tree. */
                 else {
-                    addr_page = locate_page_in_registry (&(**idx_registry), next_offset);
+                    addr_page = locate_page_in_registry(&(**idx_registry), next_offset);
                     if (addr_page == NULL)
                         addr_page = map_page_from_hdd_to_registry(&(*idx_registry), next_offset, idx, NULL);
                     ptr = count = (u_int32_t *)(addr_page);
@@ -301,6 +301,19 @@ int ymd, src, dst;
     if (src < 0) return -1;
     if (dst > 0) return  1;
     if (dst < 0) return -1;
+}
+
+void * locate_page_in_registry (Page_registry *registry, u_int32_t N_page) {
+Page_registry *tmp;
+
+    tmp = registry;
+    while (tmp) {
+        if (tmp->page_number == N_page)
+            return tmp->page_addr;
+        else
+            tmp = tmp->next;
+    }
+    return NULL;
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
