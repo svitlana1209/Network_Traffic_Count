@@ -316,6 +316,104 @@ Page_registry *tmp;
     return NULL;
 }
 
+/*
+    Map page (target_file) from HDD into memory.
+    The address and number of the new page writes into the Registry of open pages if there is a free space in the Registry.
+    The number of records in the Registry does not exceed NUMBER_PAGES_OPEN (32).
+    The function returns the address of the new mapped page.
+
+    If the Registry already has 32 records, it is necessary to unmap one page before loading a new one.
+    The root page is never removed from the Registry.
+    The page removal occurs depending on the parameter:
+    1) (Chain *) == NULL. To map a new page, the function will unmap any page except the root.
+    2) (Chain *) != NULL. A Chain of pages passed by a key is transmitted to the function.
+                          This means that you can unmap any page that does not belong to the Chain (except the root).
+*/
+void * map_page_from_hdd_to_registry(Page_registry **registry, u_int32_t N_page, int target_file, Chain *cell_0) {
+void *new_addr_page;
+Page_registry *tmp, *new_rec;
+u_int32_t i;
+off_t place;
+
+    place = PAGE_SIZE * (N_page-1);
+    tmp = *registry;
+    new_addr_page = NULL;
+    /* Looking for a free space in the Registry of open pages: */
+    for (i=1; i<NUMBER_PAGES_OPEN; i++) {
+        if (tmp->next == NULL) {
+            /* There is a place in the Regisry. Mapping a page to memory (N_page*8192) */
+            new_addr_page = mmap (NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
+            if (new_addr_page == MAP_FAILED)
+                quit ("mmap failed.\n");
+            new_rec = (Page_registry *)malloc(sizeof(Page_registry));
+            new_rec->next = NULL;
+            new_rec->prev = tmp;
+            new_rec->page_addr = new_addr_page;
+            new_rec->page_number = N_page;
+            tmp->next = new_rec;
+            return new_addr_page;
+        }
+        else
+            tmp = tmp->next;
+    }
+    /* No free space in the Registry: */
+    tmp = *registry;
+    /* The Chain is not transmitted. You can unmap any page except the root: */
+    if (cell_0 == NULL) {
+        tmp = tmp->next;
+        /* Mapping a new page to memory (N_page*8192): */
+        new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
+        if (new_addr_page == MAP_FAILED)
+            quit ("mmap failed.\n");
+        /* Return a page from memory to disk: */
+        msync(tmp->page_addr, PAGE_SIZE, MS_ASYNC);
+        munmap(tmp->page_addr, PAGE_SIZE);
+        /* Set the address and number of the new page in the Registry instead of the unmapped page: */
+        tmp->page_addr = new_addr_page;
+        tmp->page_number = N_page;
+        return new_addr_page;
+    }
+    else {
+        /* Check the Registry elements for entering the Chain.
+           Remove the page not belonging to the Chain from the Registry, write the address of the new page in its place: */
+        while (tmp != NULL) {
+            if (page_in_chain(tmp->page_addr, cell_0))
+                tmp = tmp->next;
+            else {
+                new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
+                if (new_addr_page == MAP_FAILED)
+                    quit ("mmap failed.\n");
+                msync(tmp->page_addr, PAGE_SIZE, MS_ASYNC);
+                munmap(tmp->page_addr, PAGE_SIZE);
+                tmp->page_addr = new_addr_page;
+                tmp->page_number = N_page;
+                return new_addr_page;
+            }
+        }
+    }
+    if (new_addr_page == NULL)
+        quit ("Can't allocate the record in the Page Registry\n");
+    /*
+        Attention: if the height of the index tree (i.e. the length of the Chain) strives for NUMBER_PAGES_OPEN,
+        (all the pages of the Registry are included in the Chain), then the function cannot delete any page from
+        the Registry to add a new page. And will return Null.
+        The height of the tree should be less than NUMBER_PAGES_OPEN.
+    */
+}
+
+bool page_in_chain(void *addr, Chain *cell_0) {
+Chain *cell_current;
+
+    cell_current = cell_0; /* bottom of the stack, root page address */
+    while (cell_current != NULL) {
+        if (addr == cell_current->addr_page)
+            return true;
+        else
+            cell_current = cell_current->prev; /* Going up the list */
+    }
+    return false;
+}
+
 void ht_to_db(hashtable *ht, CFG *config) {
 
 }

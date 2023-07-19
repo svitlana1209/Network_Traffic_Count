@@ -70,6 +70,12 @@ typedef struct reestr {
     struct reestr *next, *prev;
 } Page_registry;
 
+typedef struct Chn {
+    void        *addr_page;
+    struct Chn  *next;
+    struct Chn  *prev;
+} Chain;
+
 typedef struct cfg {
     int			db, idx;
     u_int32_t		db_records;
