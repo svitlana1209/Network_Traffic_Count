@@ -201,7 +201,7 @@ long long int poz;
             while (hkey) {
                 poz = locate_record(hkey, cfg.idx, cfg.idx_page_registry);
                 if (poz > 0)
-                    update_rec_in_db(&cfg, poz, hkey);
+                    update_rec_in_db(&cfg, *poz, hkey);
                 else
                     add_rec_to_db(&cfg, hkey);
                 hkey = hkey->next;
@@ -303,7 +303,7 @@ int ymd, src, dst;
     if (dst < 0) return -1;
 }
 
-void * locate_page_in_registry (Page_registry *registry, u_int32_t N_page) {
+void * locate_page_in_registry(Page_registry *registry, u_int32_t N_page) {
 Page_registry *tmp;
 
     tmp = registry;
@@ -414,11 +414,31 @@ Chain *cell_current;
     return false;
 }
 
-void ht_to_db(hashtable *ht, CFG *config) {
+void update_rec_in_db(CFG *config, long long int *poz, HashKey *hkey) {
+int db;
+u_int32_t page_for_write, offset_on_page;
+u_int32_t *ptr;
+long long int *lli;
+void *addr_page;
+Page_registry *db_registry
 
+    page_for_write = *poz >> 32;
+    offset_on_page = *poz;
+    db = config->db;
+    db_registry = config->db_page_registry;
+
+    addr_page = locate_page_in_registry(db_registry, page_for_write);
+    if (addr_page == NULL) {
+        addr_page = map_page_from_hdd_to_registry(&(*db_registry), page_for_write, db, NULL);
+    ptr = (u_int32_t *)addr_page;
+    ptr = ptr + offset_on_page + 2;
+    lli = (long long int *)ptr;
+    *lli = *lli + hkey->vol;
+    ptr = ptr + 2;
+    *ptr = *ptr + hkey->packs;
 }
 
-void update_rec_in_db(CFG *config, long long int poz, HashKey *hkey) {
+void ht_to_db(hashtable *ht, CFG *config) {
 
 }
 
