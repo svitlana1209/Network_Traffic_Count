@@ -438,11 +438,61 @@ Page_registry *db_registry
     *ptr = *ptr + hkey->packs;
 }
 
-void ht_to_db(hashtable *ht, CFG *config) {
+void add_rec_to_db(CFG *config, HashKey *hkey) {
+void *page_addr;
+u_int32_t *ptr, *count, *page_number, *page_for_write, *page_max;
+long long int *lli;
+Page_registry *db_registry;
+int db;
+u_int32_t begin_cur_record;
+u_int8_t new_page;
 
+    db_registry  = config->db_page_registry;
+    db  = config->db;
+    /* First DB page: */
+    ptr = (u_int32_t *)(db_registry->page_addr);
+    count = ptr;
+    page_number    = ++ptr;
+    page_for_write = ++ptr;
+    page_max       = ++ptr;
+    if (*page_for_write > 1) {
+        new_page = 0;
+        page_addr = locate_page_in_registry(db_registry, *page_for_write);
+        if (page_addr == NULL) {
+            if (*page_for_write > *page_max) {
+                new_page = 1;                                  /* This is a new page, it is not on disk */
+                ftruncate (db, PAGE_SIZE *(*page_for_write));  /* Extended file to page size */
+                (*page_max)++;
+            }
+            page_addr = map_page_from_hdd_to_registry(&(*db_registry), *page_for_write, db, NULL);
+        }
+        ptr = (u_int32_t *)(page_addr);
+        count = ptr;
+        page_number = ++ptr;
+        if (new_page == 1)
+            *page_number = *page_for_write;
+    }
+    begin_cur_record = DB_SERVICE_RECORD_LEN + (*count * DB_DATA_RECORD_LEN);
+    ptr = count + begin_cur_record;
+    *(ptr++) = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
+    *(ptr++) = hkey->srcIP;
+    *(ptr++) = hkey->dstIP;
+    lli = (long long int *)ptr;
+    *(lli++) = hkey->vol;
+    ptr = ptr + 2;
+    *ptr = hkey->packs;
+    (*count)++;
+    (config->db_records)++;
+
+    add_key_to_idx(hkey, *page_for_write, begin_cur_record, config);
+    if (*count >= N_DB) {
+        if (*page_for_write > 1)
+            unload_page(&(*db_registry), page_addr);
+        (*page_for_write)++; /* There is no free space. Next page to write */
+    }
 }
 
-void add_rec_to_db(CFG *config, HashKey *hkey){
+void ht_to_db(hashtable *ht, CFG *config) {
 
 }
 
