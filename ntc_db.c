@@ -492,6 +492,24 @@ u_int8_t new_page;
     }
 }
 
+void unload_page(Page_registry *registry, void *addr_page) {
+Page_registry *tmp, *head, *tail;
+
+    for (tmp = registry; tmp->page_addr != addr_page; tmp = tmp->next) {
+        if (tmp == NULL)
+            quit("Page unload error\n");
+    }
+    if (tmp != registry) {
+        head = tmp->prev;
+        tail = tmp->next;
+        head->next = tail;
+        tail->prev = head;
+        free(tmp);
+        msync (addr_page, PAGE_SIZE, MS_ASYNC);
+        munmap (addr_page, PAGE_SIZE);
+    }
+}
+
 void ht_to_db(hashtable *ht, CFG *config) {
 
 }

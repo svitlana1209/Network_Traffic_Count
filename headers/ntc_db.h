@@ -8,4 +8,5 @@ void * map_page_from_hdd_to_registry(Page_registry **, u_int32_t, int, Chain *);
 bool page_in_chain(void *, Chain *);
 void update_rec_in_db(CFG *, long long int *, HashKey *);
 void add_rec_to_db(CFG *, HashKey *);
+void unload_page(Page_registry *, void *);
 
