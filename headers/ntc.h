@@ -79,7 +79,6 @@ typedef struct Chn {
 typedef struct cfg {
     int			db, idx;
     u_int32_t		db_records;
-    u_int32_t		idx_core_count;
     Page_registry 	*db_page_registry, *idx_page_registry;
 } CFG;
 
