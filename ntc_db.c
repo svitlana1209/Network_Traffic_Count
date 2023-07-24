@@ -514,7 +514,6 @@ void add_key_to_idx(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on
 Page_registry *idx_registry;
 u_int32_t *count_idx_pages, *top_of_page;
 u_int32_t N_page, new_idx_page_number, keys_number, current_level, count, last_level;
-u_int8_t add;
 int flag, idx;
 void *addr_page;
 Chain *cell_head, *cell_tail;
@@ -523,7 +522,6 @@ Chain *cell_head, *cell_tail;
     idx_registry = config->idx_page_registry;
     last_level = IDX_LEVEL_LIMIT-1;
 
-    add = 0;
     /* Root IDX page */
     top_of_page = (u_int32_t *)((*idx_registry).page_addr);
     count_idx_pages = top_of_page + 3;
@@ -540,31 +538,26 @@ Chain *cell_head, *cell_tail;
             *count_idx_pages = new_idx_page_number;
     }
     else {
-        while (add !=1) {
-            N_page = choice_offset(top_of_page, hkey);
-            addr_page = locate_page_in_registry(idx_registry, N_page);
-            if (addr_page == NULL)
-                addr_page = map_page_from_hdd_to_registry(idx_registry, N_page, idx, cell_head);
-            top_of_page = (u_int32_t *)addr_page;
-            count = *top_of_page;
-            current_level = *(top_of_page + 1);
-            keys_number = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
-            cell_tail = new_cell(cell_tail, addr_page);
+        N_page = choice_offset(top_of_page, hkey);
+        addr_page = locate_page_in_registry(idx_registry, N_page);
+        if (addr_page == NULL)
+            addr_page = map_page_from_hdd_to_registry(idx_registry, N_page, idx, cell_head);
+        top_of_page = (u_int32_t *)addr_page;
+        count = *top_of_page;
+        current_level = *(top_of_page + 1);
+        keys_number = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
+        cell_tail = new_cell(cell_tail, addr_page);
 
-            if (count < (keys_number)) {
-                new_idx_page_number = add_key_on_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
-                if (new_idx_page_number > 0)
-                    *count_idx_pages = new_idx_page_number;
-                else
-                    (*count_idx_pages)++;
-                add = 1;
-            }
-            else {
-                if (current_level == last_level) {
-                    flag = split_page(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
-                    add = 1;
-                }
-            }
+        if (count < (keys_number)) {
+            new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
+            if (new_idx_page_number > 0)
+                *count_idx_pages = new_idx_page_number;
+            else
+                (*count_idx_pages)++;
+        }
+        else {
+            if (current_level == last_level)
+                flag = split_page(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
         }
     }
     destroy_chain(cell_head);
