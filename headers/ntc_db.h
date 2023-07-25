@@ -9,6 +9,6 @@ bool page_in_chain(void *, Chain *);
 void update_rec_in_db(CFG *, long long int *, HashKey *);
 void add_rec_to_db(CFG *, HashKey *);
 void unload_page(Page_registry *, void *);
-void add_key_to_idx(HashKey *, u_int32_t, u_int32_t, CFG *);
+int add_key_to_idx(HashKey *, u_int32_t, u_int32_t, CFG *);
 Chain * new_cell(Chain *, void *);
 void destroy_chain(Chain *);

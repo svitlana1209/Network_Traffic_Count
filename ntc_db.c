@@ -510,10 +510,10 @@ Page_registry *tmp, *head, *tail;
     }
 }
 
-void add_key_to_idx(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on_db_page, CFG *config) {
+int add_key_to_idx(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on_db_page, CFG *config) {
 Page_registry *idx_registry;
 u_int32_t *count_idx_pages, *top_of_page;
-u_int32_t N_page, new_idx_page_number, keys_number, current_level, count, last_level;
+u_int32_t N_page, new_idx_page_number, keys_limit, current_level, count, last_level;
 int flag, idx;
 void *addr_page;
 Chain *cell_head, *cell_tail;
@@ -525,44 +525,42 @@ Chain *cell_head, *cell_tail;
     /* Root IDX page */
     top_of_page = (u_int32_t *)((*idx_registry).page_addr);
     count_idx_pages = top_of_page + 3;
-    cell_head = (Chain *)malloc(sizeof(Chain));
-    cell_head->addr_page = idx_registry->page_addr;
-    cell_head->next = NULL;
-    cell_head->prev = NULL;
-    cell_tail = cell_head;
-
     if (*top_of_page < (N_IDX)) {
         /* If the Root contains less than 170 keys: */
         new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
         if (new_idx_page_number > 0)
             *count_idx_pages = new_idx_page_number;
+        return 0;
     }
-    else {
-        N_page = choice_offset(top_of_page, hkey);
+    /* Root page is full. Further, the root will be filled only when splitting the pages of the lower level. */
+    cell_head = (Chain *)malloc(sizeof(Chain));
+    cell_head->addr_page = idx_registry->page_addr;
+    cell_head->next = NULL;
+    cell_head->prev = NULL;
+    cell_tail = cell_head;
+    N_page = choice_offset(top_of_page, hkey);
+    while (N_page != 0xFFFFFFFF) {
         addr_page = locate_page_in_registry(idx_registry, N_page);
         if (addr_page == NULL)
             addr_page = map_page_from_hdd_to_registry(idx_registry, N_page, idx, cell_head);
         top_of_page = (u_int32_t *)addr_page;
         count = *top_of_page;
         current_level = *(top_of_page + 1);
-        keys_number = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
-        cell_tail = new_cell(cell_tail, addr_page);
-
-        if (count < (keys_number)) {
+        keys_limit = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
+        if (count < (keys_limit)) {
             new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
             if (new_idx_page_number > 0)
                 *count_idx_pages = new_idx_page_number;
-            else
-                (*count_idx_pages)++;
+            destroy_chain(cell_head);
+            return 0;
         }
-        else {
-            if (current_level == last_level)
-                flag = split_page(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
-        }
+        cell_tail = new_cell(cell_tail, addr_page);
+        N_page = choice_offset(top_of_page, hkey);
     }
+    /* Last level: */
+    flag = split_page(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
     destroy_chain(cell_head);
-    if (flag < 0)
-        idx_tree_is_full(config);
+    return flag;
 }
 
 Chain * new_cell(Chain *old_tail, void *addr_page) {
@@ -585,6 +583,11 @@ Chain *tmp;
         cell = tmp;
     }
     free (cell);
+}
+
+/* Returns page number of the lower level */
+u_int32_t choice_offset(u_int32_t *ptr, HashKey *hkey) {
+
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
