@@ -241,7 +241,7 @@ int rez_compare;
         offset_db = *ptr;       /* db_offset_on_page */
 
 
-        rez_compare = compare_keys (ymd_field, srcIP, dstIP, hkey);
+        rez_compare = compare_keys(ymd_field, srcIP, dstIP, hkey);
         if (rez_compare == 0) {
             address = page_db;
             address = (address << 32) | offset_db;
@@ -585,9 +585,48 @@ Chain *tmp;
     free (cell);
 }
 
-/* Returns page number of the lower level */
-u_int32_t choice_offset(u_int32_t *ptr, HashKey *hkey) {
+/* choice_offset() looks for which sublevel page the key can be written to.
+   Returns page number of the lower level.
+   We assume that there is no such key. This is what the search procedure says.
+   Algorithm:
+    1) x < k1:       the new key will be written on the page with the number 'offset_0';
+    2) k_i<x<k_(i+1) the new key will be written on the page with the number 'offset_i';
+    3) x > k_n:      the new key will be written on the page with the number 'offset_n'.
 
+  +-----------------------------------------------------------------+
+  |                           page N...                             |
+  +-----------------------------------------------------------------+
+  |offset_0| k1;offset_1  | ...k_i;offset_i   |...| k_n;offset_ n   |
+  ------------------------------------------------------------------+
+*/
+u_int32_t choice_offset(u_int32_t *ptr, HashKey *hkey) {
+u_int32_t count, level, i, srcIP, dstIP, ymd_field;
+u_int32_t *offset_p, *offset_i;
+int rez_compare;
+
+    count = *ptr;
+    level = *(ptr + 1);
+    offset_i = ptr = ptr + 4;   /* offset_0 */
+    step = 4;
+
+    for (i=1; i<=count; i++) {
+        ptr = ptr + step;
+        ymd_field = *(ptr++);
+        srcIP = *(ptr++);
+        dstIP = *(ptr++);
+        offset_p = offset_i;
+        offset_i = ptr;         /* page_lower_level */
+        step = 3;
+        rez_compare = compare_keys(ymd_field, srcIP, dstIP, hkey);
+        if (rez_compare < 0)    /* if the new key (hkey) is less than the current one */
+            break;
+    }
+    if (i > count)
+        offset_p = offset_i;
+    if (*offset_p == 0)         /* no page */
+        *offset_p = add_page_lower_level(u_int32_t level);
+
+    return *offset_p;
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
