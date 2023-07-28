@@ -13,3 +13,4 @@ int add_key_to_idx(HashKey *, u_int32_t, u_int32_t, CFG *);
 Chain * new_cell(Chain *, void *);
 void destroy_chain(Chain *);
 u_int32_t choice_offset(u_int32_t *, HashKey *);
+u_int32_t add_page_lower_level(u_int32_t);

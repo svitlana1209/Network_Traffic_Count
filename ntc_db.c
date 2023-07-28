@@ -528,8 +528,10 @@ Chain *cell_head, *cell_tail;
     if (*top_of_page < (N_IDX)) {
         /* If the Root contains less than 170 keys: */
         new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
-        if (new_idx_page_number > 0)
+        if (new_idx_page_number > 0) {
             *count_idx_pages = new_idx_page_number;
+            (config->idx_page_count)++;
+        }
         return 0;
     }
     /* Root page is full. Further, the root will be filled only when splitting the pages of the lower level. */
@@ -627,6 +629,31 @@ int rez_compare;
         *offset_p = add_page_lower_level(u_int32_t level);
 
     return *offset_p;
+}
+
+/*  Adds a sublevel page.
+    Page numbers in ascending order.
+    Returns the new page number (max+1).
+ */
+u_int32_t add_page_lower_level(u_int32_t level) {
+off_t offset;
+u_int32_t *ptr;
+void *page_addr;
+
+    (cfg.idx_page_count)++;
+    /* Add a new page to the IDX file, expand the file to the size of the page: */
+    ftruncate (cfg.idx, PAGE_SIZE * (cfg.idx_page_count));
+    /* Loading the page into memory and writing new values: */
+    offset = PAGE_SIZE * ((cfg.idx_page_count)-1);
+    page_addr = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, cfg.idx, offset);
+    ptr = (u_int32_t *)page_addr;
+    *(++ptr) = level + 1;
+    *(++ptr) = cfg.idx_page_count;
+    /* Returning the page to disk: */
+    msync (page_addr, PAGE_SIZE, MS_ASYNC);
+    munmap (page_addr, PAGE_SIZE);
+
+    return cfg.idx_page_count;
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
