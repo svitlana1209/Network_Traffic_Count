@@ -9,79 +9,88 @@
 #define N_IDX (PAGE_SIZE/(IDX_DATA_RECORD_LEN*4))/2 /* Max/2 number of keys on IDX page = 170 keys. ((170x2)x 24 bytes)+32 bytes of service record = 8192 bytes on IDX page */
 
 typedef struct pkt {
-    u_int8_t	buff[1516];
-    u_int32_t	size;
+    u_int8_t  buff[1516];
+    u_int32_t size;
 } packet;
 
 typedef struct q {
-    u_int16_t	year;
-    u_int8_t	month;
-    u_int8_t	day;
-    u_int32_t	srcIP;
-    u_int32_t	dstIP;
-    u_int32_t	vol;
-    struct q	*next, *prev;
+    u_int16_t year;
+    u_int8_t  month;
+    u_int8_t  day;
+    u_int32_t srcIP;
+    u_int32_t dstIP;
+    u_int32_t vol;
+    struct q  *next, *prev;
 } Queue;
 
 typedef struct hash_key {
-    u_int16_t		year;
-    u_int8_t		month;
-    u_int8_t		day;
-    u_int32_t		srcIP;
-    u_int32_t		dstIP;
-    long long int	vol;
-    u_int32_t		packs;
-    struct hash_key	*next, *prev;
+    u_int16_t       year;
+    u_int8_t        month;
+    u_int8_t        day;
+    u_int32_t       srcIP;
+    u_int32_t       dstIP;
+    long long int   vol;
+    u_int32_t       packs;
+    struct hash_key *next, *prev;
 } HashKey;
 
 typedef struct ht {
-    u_int32_t		hash;
-    HashKey		*ptr_to_hashkey;
-    struct ht		*next, *prev;
+    u_int32_t hash;
+    HashKey   *ptr_to_hashkey;
+    struct ht *next, *prev;
 } hashtable;
 
 typedef struct fk {
-    u_int16_t	year;
-    u_int8_t	month;
-    u_int8_t	day;
-    u_int32_t	srcIP;
-    u_int32_t	dstIP;
+    u_int16_t year;
+    u_int8_t  month;
+    u_int8_t  day;
+    u_int32_t srcIP;
+    u_int32_t dstIP;
 } forkey;
 
 typedef struct total_trafic {
-    long long int	in;
-    long long int	out;
+    long long int in;
+    long long int out;
 } total;
 
 typedef struct dyn {
-    u_int32_t	src_x;
-    u_int32_t	dst_y;
-    u_int32_t	vol1;
-    u_int32_t	packs1;
-    u_int32_t	src_y;
-    u_int32_t	dst_x;
-    u_int32_t	vol2;
-    u_int32_t	packs2;
+    u_int32_t src_x;
+    u_int32_t dst_y;
+    u_int32_t vol1;
+    u_int32_t packs1;
+    u_int32_t src_y;
+    u_int32_t dst_x;
+    u_int32_t vol2;
+    u_int32_t packs2;
 } dyn_struct;
 
 typedef struct reestr {
-    void	*page_addr;
-    u_int32_t	page_number;
+    void          *page_addr;
+    u_int32_t     page_number;
     struct reestr *next, *prev;
 } Page_registry;
 
 typedef struct Chn {
     void        *addr_page;
-    struct Chn  *next;
-    struct Chn  *prev;
+    struct Chn  *next, *prev;
 } Chain;
 
 typedef struct cfg {
-    int			db, idx;
-    u_int32_t		db_records;
-    u_int32_t		idx_page_count;
-    Page_registry 	*db_page_registry, *idx_page_registry;
+    int           db, idx;
+    u_int32_t     db_records;
+    u_int32_t     idx_page_count;
+    Page_registry *db_page_registry, *idx_page_registry;
 } CFG;
+
+typedef struct idx_page_cont {
+    u_int32_t ymd;
+    u_int32_t srcIP;
+    u_int32_t dstIP;
+    u_int32_t offset_lower_level;
+    u_int32_t db_page_number;
+    u_int32_t offset_in_db_page;
+    struct idx_page_cont *next, *prev;
+} idx_page_content;
 
 void call_init();
 void call_exit();

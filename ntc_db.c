@@ -513,25 +513,21 @@ Page_registry *tmp, *head, *tail;
 int add_key_to_idx(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on_db_page, CFG *config) {
 Page_registry *idx_registry;
 u_int32_t *count_idx_pages, *top_of_page;
-u_int32_t N_page, new_idx_page_number, keys_limit, current_level, count, last_level;
+u_int32_t N_page, keys_limit, current_level, count, last_level;
 int flag, idx;
 void *addr_page;
 Chain *cell_head, *cell_tail;
 
-    idx   = config->idx;
     idx_registry = config->idx_page_registry;
-    last_level = IDX_LEVEL_LIMIT-1;
+    idx = config->idx;
+    last_level = IDX_LEVEL_LIMIT - 1;
 
     /* Root IDX page */
     top_of_page = (u_int32_t *)((*idx_registry).page_addr);
     count_idx_pages = top_of_page + 3;
     if (*top_of_page < (N_IDX)) {
         /* If the Root contains less than 170 keys: */
-        new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
-        if (new_idx_page_number > 0) {
-            *count_idx_pages = new_idx_page_number;
-            (config->idx_page_count)++;
-        }
+        add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page);
         return 0;
     }
     /* Root page is full. Further, the root will be filled only when splitting the pages of the lower level. */
@@ -550,9 +546,7 @@ Chain *cell_head, *cell_tail;
         current_level = *(top_of_page + 1);
         keys_limit = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
         if (count < (keys_limit)) {
-            new_idx_page_number = add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page, idx, *count_idx_pages);
-            if (new_idx_page_number > 0)
-                *count_idx_pages = new_idx_page_number;
+            add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page);
             destroy_chain(cell_head);
             return 0;
         }
@@ -638,22 +632,57 @@ int rez_compare;
 u_int32_t add_page_lower_level(u_int32_t level) {
 off_t offset;
 u_int32_t *ptr;
+u_int32_t new_level, offest_0;
 void *page_addr;
 
     (cfg.idx_page_count)++;
+    new_level = level + 1;
+    offset_0 = (new_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
     /* Add a new page to the IDX file, expand the file to the size of the page: */
     ftruncate (cfg.idx, PAGE_SIZE * (cfg.idx_page_count));
     /* Loading the page into memory and writing new values: */
     offset = PAGE_SIZE * ((cfg.idx_page_count)-1);
     page_addr = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, cfg.idx, offset);
     ptr = (u_int32_t *)page_addr;
-    *(++ptr) = level + 1;
+    *(++ptr) = new_level;
     *(++ptr) = cfg.idx_page_count;
+    ptr = ptr + 2;
+    *ptr = offset_0;
     /* Returning the page to disk: */
     msync (page_addr, PAGE_SIZE, MS_ASYNC);
     munmap (page_addr, PAGE_SIZE);
 
     return cfg.idx_page_count;
+}
+
+void add_key_to_current_idx_page(u_int32_t *ptr, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
+u_int32_t offset_lower_level, this_level, ymd_hkey;
+idx_page_content *list;
+u_int32_t *count;
+
+    count = ptr;
+    this_level = *(ptr + 1);
+    offset_lower_level = (this_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
+    ptr = ptr + IDX_SERVICE_RECORD_LEN;
+
+    ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
+
+    if (*count == 0) {
+        *(ptr++) = ymd_hkey;
+        *(ptr++) = hkey->srcIP;
+        *(ptr++) = hkey->dstIP;
+        *(ptr++) = offset_lower_level;
+        *(ptr++) = db_page_number;
+        *ptr = offset_in_db_page;
+        *count = 1;
+    }
+    else {
+        list = (idx_page_content *)malloc(sizeof(idx_page_content));
+        upload_keys_to_list(*count, ptr, list);
+        list = add_new_key_list(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+        write_keys_from_list_to_page(ptr, list);
+        destroy_list(list);
+    }
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
