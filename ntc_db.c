@@ -679,6 +679,7 @@ u_int32_t *count;
     else {
         list = upload_keys(*count, ptr);
         list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+        (*count)++;
         write_keys(ptr, list);
         destroy_list(list);
     }
@@ -709,6 +710,34 @@ u_int32_t i;
         }
     }
     return list;
+}
+
+idx_page_content * add_new_key(idx_page_content *list, HashKey *hkey, u_int32_t offset_lower_level, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
+
+}
+
+void write_keys(u_int32_t *ptr, idx_page_content *list) {
+    ptr--;
+    while (list){
+        *(++ptr) = list->ymd;
+        *(++ptr) = list->srcIP;
+        *(++ptr) = list->dstIP;
+        *(++ptr) = list->ofset_lower_level;
+        *(++ptr) = list->db_page_number;
+        *(++ptr) = list->offset_in_db_page;
+        list = list->next;
+    }
+}
+
+void destroy_list(idx_page_content *list) {
+idx_page_content *tmp;
+
+    while (list->next != NULL) {
+        tmp = list->next;
+        free(list);
+        list = tmp;
+    }
+    free(list);
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {

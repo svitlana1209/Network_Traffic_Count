@@ -16,3 +16,8 @@ u_int32_t choice_offset(u_int32_t *, HashKey *);
 u_int32_t add_page_lower_level(u_int32_t);
 void add_key_to_current_idx_page(u_int32_t *, HashKey *, u_int32_t, u_int32_t);
 idx_page_content * upload_keys(u_int32_t, u_int32_t *);
+idx_page_content * add_new_key(idx_page_content *, HashKey *, u_int32_t, u_int32_t, u_int32_t);
+void write_keys(u_int32_t *, idx_page_content *);
+void destroy_list(idx_page_content *);
+
+
