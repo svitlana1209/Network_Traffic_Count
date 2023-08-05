@@ -677,12 +677,38 @@ u_int32_t *count;
         *count = 1;
     }
     else {
-        list = (idx_page_content *)malloc(sizeof(idx_page_content));
-        upload_keys_to_list(*count, ptr, list);
-        list = add_new_key_list(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
-        write_keys_from_list_to_page(ptr, list);
+        list = upload_keys(*count, ptr);
+        list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+        write_keys(ptr, list);
         destroy_list(list);
     }
+}
+
+idx_page_content * upload_keys(u_int32_t count, u_int32_t *ptr) {
+idx_page_content *list, *l_tmp, *l_prv;
+u_int32_t i;
+
+    l_tmp = (idx_page_content *)malloc(sizeof(idx_page_content));
+    l_tmp->next = NULL;
+    l_tmp->prev = NULL;
+    list = l_tmp;
+    for (i=1; i <= count; i++) {
+        l_tmp->ymd   = *(ptr++);
+        l_tmp->srcIP = *(ptr++);
+        l_tmp->dstIP = *(ptr++);
+        l_tmp->offset_lower_level = *(ptr++);
+        l_tmp->db_page_number     = *(ptr++);
+        l_tmp->offset_in_db_page  = *ptr;
+        if (i != count) {
+            l_prv = l_tmp;
+            l_tmp = (idx_page_content *)malloc(sizeof(idx_page_content));
+            l_prv->next = l_tmp;
+            l_tmp->prev = l_prv;
+            l_tmp->next = NULL;
+            ptr++;
+        }
+    }
+    return list;
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
