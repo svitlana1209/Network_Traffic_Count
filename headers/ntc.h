@@ -88,7 +88,7 @@ typedef struct idx_page_cont {
     u_int32_t dstIP;
     u_int32_t offset_lower_level;
     u_int32_t db_page_number;
-    u_int32_t offset_in_db_page;
+    u_int32_t offset_on_db_page;
     struct idx_page_cont *next, *prev;
 } idx_page_content;
 

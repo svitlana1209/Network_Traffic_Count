@@ -665,7 +665,6 @@ u_int32_t *count;
     offset_lower_level = (this_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
     ptr = ptr + IDX_SERVICE_RECORD_LEN;
 
-    ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
 
     if (*count == 0) {
         *(ptr++) = ymd_hkey;
@@ -673,7 +672,7 @@ u_int32_t *count;
         *(ptr++) = hkey->dstIP;
         *(ptr++) = offset_lower_level;
         *(ptr++) = db_page_number;
-        *ptr = offset_in_db_page;
+        *ptr = offset_on_db_page;
         *count = 1;
     }
     else {
@@ -699,7 +698,7 @@ u_int32_t i;
         l_tmp->dstIP = *(ptr++);
         l_tmp->offset_lower_level = *(ptr++);
         l_tmp->db_page_number     = *(ptr++);
-        l_tmp->offset_in_db_page  = *ptr;
+        l_tmp->offset_on_db_page  = *ptr;
         if (i != count) {
             l_prv = l_tmp;
             l_tmp = (idx_page_content *)malloc(sizeof(idx_page_content));
@@ -712,8 +711,45 @@ u_int32_t i;
     return list;
 }
 
-idx_page_content * add_new_key(idx_page_content *list, HashKey *hkey, u_int32_t offset_lower_level, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
+idx_page_content * add_new_key(idx_page_content *head, HashKey *hkey, u_int32_t offset_lower_level, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
+int rez_compare;
+idx_page_content *list, *new_key, *tmp;
 
+    list = head;
+    new_key = (idx_page_content *)malloc(sizeof(idx_page_content));
+    new_key->ymd   = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
+    new_key->srcIP = hkey->srcIP;
+    new_key->dstIP = hkey->dstIP;
+    new_key->offset_lower_level = offset_lower_level;
+    new_key->db_page_number     = db_page_number;
+    new_key->offset_on_db_page  = offset_on_db_page
+
+    while (list) {
+        rez_compare = compare_keys(list->ymd, list->srcIP, list->dstIP, hkey);
+        if (rez_compare < 0)  {
+            if (list->prev == NULL) {
+                list->prev = new_key;
+                new_key->next = list;
+                new_key->prev = NULL;
+                return new_key;
+            }
+            else {
+                tmp = list->prev;
+                list->prev = new_key;
+                new_key->next = list;
+                new_key->prev = tmp;
+                tmp->next = new_key;
+                return head;
+            }
+        }
+        if (list->next == NULL) {
+            list->next = new_key;
+            new_key->prev = list;
+            new_key->next = NULL;
+            return head;
+        }
+        list = list->next;
+    }
 }
 
 void write_keys(u_int32_t *ptr, idx_page_content *list) {
