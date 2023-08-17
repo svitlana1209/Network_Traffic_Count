@@ -665,7 +665,6 @@ u_int32_t *count;
     offset_lower_level = (this_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
     ptr = ptr + IDX_SERVICE_RECORD_LEN;
 
-
     if (*count == 0) {
         *(ptr++) = ymd_hkey;
         *(ptr++) = hkey->srcIP;
@@ -777,6 +776,15 @@ idx_page_content *tmp;
 }
 
 void ht_to_db(hashtable *ht, CFG *config) {
+HashKey *hkey;
 
+    while (ht) {
+        hkey = ht->ptr_to_hashkey;
+        while (hkey) {
+            add_rec_to_db(config, hkey);
+            hkey = hkey->next;
+        }
+        ht =  ht->next;
+    }
 }
 
