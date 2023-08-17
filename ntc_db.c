@@ -790,6 +790,25 @@ HashKey *hkey;
     }
 }
 
+/*
+    Expanding the index tree. The expansion starts from the bottom level of the tree - from the leaves.
+    A page of this level will be divided if a new key (k) cannot be added to it, because the number of keys on it = 2n.
+    At the current level, a blank page is created, but in fact it is added to the end of the file.
+    The content of the page and the new key k (i.e. 2n+1) are sorted, halved,
+    the first half is written back onto the page, and the second half onto a new blank page of the same level.
+    The key that is in the middle (median) goes up one page level.
+    If the "count" of this page does not exceed 2n, then add the median key to the page.
+    If the "count" exceeds 2n and does not allow insertion of a median key, then this page will also be divided.
+    Only the root is not divisible. If the root reaches 2n keys, then the tree is full, because its height does not exceed 3.
+    If it is necessary to split the root, i.e. increase the height of the tree, then you need to drop IDX_LEVEL_LIMIT
+    and set a variable.
+
+    The function returns -1 if the tree is full and 0 if a normal expansion has occurred.
+    The function accepts:
+    Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
+    count_idx_pages - page count in the index tree.
+*/
 int split_sheet(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, int idx, u_int32_t *count_idx_pages, Chain *cell_tail) {
 
 }
+
