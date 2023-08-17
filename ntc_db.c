@@ -123,6 +123,7 @@ u_int32_t *ptr;
         *(++ptr) = 0; /* level number (CORE) */
         *(++ptr) = 1; /* page_number */
         *(++ptr) = 1; /* page_count (Number of pages in idx file) */
+        *(++ptr) = 0; /* offset_0 */
     }
 
     db_pr = (Page_registry *)malloc(sizeof(Page_registry));
@@ -674,15 +675,14 @@ u_int32_t *count;
         *(ptr++) = offset_lower_level;
         *(ptr++) = db_page_number;
         *ptr = offset_on_db_page;
-        *count = 1;
     }
     else {
         list = upload_keys(*count, ptr);
         list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
-        (*count)++;
         write_keys(ptr, list);
         destroy_list(list);
     }
+    (*count)++;
 }
 
 idx_page_content * upload_keys(u_int32_t count, u_int32_t *ptr) {
