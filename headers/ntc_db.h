@@ -20,4 +20,5 @@ idx_page_content * add_new_key(idx_page_content *, HashKey *, u_int32_t, u_int32
 void write_keys(u_int32_t *, idx_page_content *);
 void destroy_list(idx_page_content *);
 void ht_to_db(hashtable *, CFG *);
+int split_sheet(HashKey *, u_int32_t, u_int32_t, int, u_int32_t *, Chain *);
 

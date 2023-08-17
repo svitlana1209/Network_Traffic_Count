@@ -100,7 +100,7 @@ u_int32_t *ptr;
     /* The first DB page: */
     db_start_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, config->db, 0);
     if (db_start_page == MAP_FAILED)
-        quit ("mmap failed.\n");
+        quit("mmap failed.\n");
     ptr = (u_int32_t*)db_start_page; /* count (Number of records (db_data_record) per page) */
     if ((*ptr) == 0) {
         /* Empty file */
@@ -117,7 +117,7 @@ u_int32_t *ptr;
     */
     idx_start_page = mmap (NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, config->idx, 0);
     if (idx_start_page == MAP_FAILED)
-        quit ("mmap failed.\n");
+        quit("mmap failed.\n");
     ptr = (u_int32_t*)idx_start_page; /* count */
     if ((*ptr) == 0) {
         *(++ptr) = 0; /* level number (CORE) */
@@ -344,7 +344,7 @@ off_t place;
             /* There is a place in the Regisry. Mapping a page to memory (N_page*8192) */
             new_addr_page = mmap (NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
             if (new_addr_page == MAP_FAILED)
-                quit ("mmap failed.\n");
+                quit("mmap failed.\n");
             new_rec = (Page_registry *)malloc(sizeof(Page_registry));
             new_rec->next = NULL;
             new_rec->prev = tmp;
@@ -364,7 +364,7 @@ off_t place;
         /* Mapping a new page to memory (N_page*8192): */
         new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
         if (new_addr_page == MAP_FAILED)
-            quit ("mmap failed.\n");
+            quit("mmap failed.\n");
         /* Return a page from memory to disk: */
         msync(tmp->page_addr, PAGE_SIZE, MS_ASYNC);
         munmap(tmp->page_addr, PAGE_SIZE);
@@ -382,7 +382,7 @@ off_t place;
             else {
                 new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
                 if (new_addr_page == MAP_FAILED)
-                    quit ("mmap failed.\n");
+                    quit("mmap failed.\n");
                 msync(tmp->page_addr, PAGE_SIZE, MS_ASYNC);
                 munmap(tmp->page_addr, PAGE_SIZE);
                 tmp->page_addr = new_addr_page;
@@ -392,7 +392,7 @@ off_t place;
         }
     }
     if (new_addr_page == NULL)
-        quit ("Can't allocate the record in the Page Registry\n");
+        quit("Can't allocate the record in the Page Registry\n");
     /*
         Attention: if the height of the index tree (i.e. the length of the Chain) strives for NUMBER_PAGES_OPEN,
         (all the pages of the Registry are included in the Chain), then the function cannot delete any page from
@@ -443,7 +443,7 @@ void *page_addr;
 u_int32_t *ptr, *count, *page_number, *page_for_write, *page_max;
 long long int *lli;
 Page_registry *db_registry;
-int db;
+int db, flag;
 u_int32_t begin_cur_record;
 u_int8_t new_page;
 
@@ -484,12 +484,14 @@ u_int8_t new_page;
     (*count)++;
     (config->db_records)++;
 
-    add_key_to_idx(hkey, *page_for_write, begin_cur_record, config);
     if (*count >= N_DB) {
         if (*page_for_write > 1)
             unload_page(db_registry, page_addr);
         (*page_for_write)++; /* There is no free space. Next page to write */
     }
+    flag = add_key_to_idx(hkey, *page_for_write, begin_cur_record, config);
+    if (flag < 0)
+        quit("Split page error\n");
 }
 
 void unload_page(Page_registry *registry, void *addr_page) {
@@ -554,7 +556,7 @@ Chain *cell_head, *cell_tail;
         N_page = choice_offset(top_of_page, hkey);
     }
     /* Last level: */
-    flag = split_page(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
+    flag = split_sheet(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
     destroy_chain(cell_head);
     return flag;
 }
@@ -788,3 +790,6 @@ HashKey *hkey;
     }
 }
 
+int split_sheet(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, int idx, u_int32_t *count_idx_pages, Chain *cell_tail) {
+
+}
