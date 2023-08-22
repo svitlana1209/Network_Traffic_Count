@@ -557,7 +557,8 @@ Chain *cell_head, *cell_tail;
         N_page = choice_offset(top_of_page, hkey);
     }
     /* Last level: */
-    flag = split_sheet(hkey, db_page_number, offset_in_db_page, idx, &(*count_idx_pages), cell_tail);
+    flag = split_sheet(addr_page, hkey, db_page_number, offset_in_db_page, config, cell_tail);
+    *count_idx_pages = config->idx_page_count;
     destroy_chain(cell_head);
     return flag;
 }
@@ -622,32 +623,31 @@ int rez_compare;
     }
     if (i > count)
         offset_p = offset_i;
-    if (*offset_p == 0)         /* no page */
-        *offset_p = add_page_lower_level(u_int32_t level);
+    if (*offset_p == 0)                 /* no page */
+        *offset_p = add_page(level+1);  /* lower level page */
 
     return *offset_p;
 }
 
-/*  Adds a sublevel page.
+/*  Adds a page to the target level.
     Page numbers in ascending order.
     Returns the new page number (max+1).
  */
-u_int32_t add_page_lower_level(u_int32_t level) {
+u_int32_t add_page(u_int32_t level) {
 off_t offset;
 u_int32_t *ptr;
-u_int32_t new_level, offest_0;
+u_int32_t offest_0;
 void *page_addr;
 
     (cfg.idx_page_count)++;
-    new_level = level + 1;
-    offset_0 = (new_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
+    offset_0 = (level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
     /* Add a new page to the IDX file, expand the file to the size of the page: */
     ftruncate (cfg.idx, PAGE_SIZE * (cfg.idx_page_count));
     /* Loading the page into memory and writing new values: */
     offset = PAGE_SIZE * ((cfg.idx_page_count)-1);
     page_addr = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, cfg.idx, offset);
     ptr = (u_int32_t *)page_addr;
-    *(++ptr) = new_level;
+    *(++ptr) = level;
     *(++ptr) = cfg.idx_page_count;
     ptr = ptr + 2;
     *ptr = offset_0;
@@ -761,7 +761,7 @@ void write_keys(u_int32_t *ptr, idx_page_content *list) {
         *(++ptr) = list->dstIP;
         *(++ptr) = list->ofset_lower_level;
         *(++ptr) = list->db_page_number;
-        *(++ptr) = list->offset_in_db_page;
+        *(++ptr) = list->offset_on_db_page;
         list = list->next;
     }
 }
@@ -808,7 +808,55 @@ HashKey *hkey;
     Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
     count_idx_pages - page count in the index tree.
 */
-int split_sheet(HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, int idx, u_int32_t *count_idx_pages, Chain *cell_tail) {
+int split_sheet(void *addr_page, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, CFG *config, Chain *cell_tail) {
+u_int32_t *ptr, *count;
+u_int32_t level, n, i, new_page_number;
+idx_page_content *list, *median;
+int flag, idx;
+void *addr_new_page;
+Page_registry *idx_registry;
 
+    idx_registry = config->idx_page_registry;
+    idx = config->idx;
+    ptr = count = (u_int32_t *)addr_page;
+    level = *(ptr + 1)
+    ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
+    list = upload_keys(*count, (ptr+1));
+    list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+    n = (*count) / 2;
+    for (i=0; i < n; i++) {
+        *(++ptr) = list->ymd;
+        *(++ptr) = list->srcIP;
+        *(++ptr) = list->dstIP;
+        *(++ptr) = list->offset_lower_level;
+        *(++ptr) = list->db_page_number;
+        *(++ptr) = list->offset_on_db_page;
+        list = list->next;
+    }
+    *count = n;
+    n =  n * IDX_DATA_RECORD_LEN;
+    for (i=0; i < n; i++)
+        *(++ptr) = 0;
+    new_page_number = add_page(level);
+    addr_new_page = map_page_from_hdd_to_registry(idx_registry, new_page_number, idx, cell_tail);
+    ptr = count = (u_int32_t *)addr_new_page;
+    ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
+    n = 0;
+    median = list;
+    list = list->next;
+    while (list) {
+        *(++ptr) = list->ymd;
+        *(++ptr) = list->srcIP;
+        *(++ptr) = list->dstIP;
+        *(++ptr) = list->offset_lower_level;
+        *(++ptr) = list->db_page_number;
+        *(++ptr) = list->offset_on_db_page;
+        n++;
+        list = list->next;
+    }
+    *count = n;
+    flag = raise_median(median, cell_tail, config);
+    destroy_list(list);
+    return flag;
 }
 
