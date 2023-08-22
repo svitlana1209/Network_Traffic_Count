@@ -803,10 +803,8 @@ HashKey *hkey;
     If it is necessary to split the root, i.e. increase the height of the tree, then you need to drop IDX_LEVEL_LIMIT
     and set a variable.
 
+    The function accepts: Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
     The function returns -1 if the tree is full and 0 if a normal expansion has occurred.
-    The function accepts:
-    Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
-    count_idx_pages - page count in the index tree.
 */
 int split_sheet(void *addr_page, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, CFG *config, Chain *cell_tail) {
 u_int32_t *ptr, *count;
