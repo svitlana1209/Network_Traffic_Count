@@ -557,7 +557,7 @@ Chain *cell_head, *cell_tail;
         N_page = choice_offset(top_of_page, hkey);
     }
     /* Last level: */
-    flag = split_sheet(addr_page, hkey, db_page_number, offset_in_db_page, config, cell_tail);
+    flag = split_sheet(addr_page, hkey, db_page_number, offset_in_db_page, config, cell_head);
     *count_idx_pages = config->idx_page_count;
     destroy_chain(cell_head);
     return flag;
@@ -806,7 +806,7 @@ HashKey *hkey;
     The function accepts: Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
     The function returns -1 if the tree is full and 0 if a normal expansion has occurred.
 */
-int split_sheet(void *addr_page, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, CFG *config, Chain *cell_tail) {
+int split_sheet(void *addr_page, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, CFG *config, Chain *cell_head) {
 u_int32_t *ptr, *count;
 u_int32_t level, n, i, new_page_number;
 idx_page_content *list, *median;
@@ -836,7 +836,7 @@ Page_registry *idx_registry;
     for (i=0; i < n; i++)
         *(++ptr) = 0;
     new_page_number = add_page(level);
-    addr_new_page = map_page_from_hdd_to_registry(idx_registry, new_page_number, idx, cell_tail);
+    addr_new_page = map_page_from_hdd_to_registry(idx_registry, new_page_number, idx, cell_head);
     ptr = count = (u_int32_t *)addr_new_page;
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     n = 0;
@@ -853,7 +853,7 @@ Page_registry *idx_registry;
         list = list->next;
     }
     *count = n;
-    flag = raise_median(median, cell_tail, config);
+    flag = raise_median(median, cell_head, config);
     destroy_list(list);
     return flag;
 }
