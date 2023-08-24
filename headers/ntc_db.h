@@ -16,9 +16,10 @@ u_int32_t choice_offset(u_int32_t *, HashKey *);
 u_int32_t add_page(u_int32_t);
 void add_key_to_current_idx_page(u_int32_t *, HashKey *, u_int32_t, u_int32_t);
 idx_page_content * upload_keys(u_int32_t, u_int32_t *);
-idx_page_content * add_new_key(idx_page_content *, HashKey *, u_int32_t, u_int32_t, u_int32_t);
+idx_page_content * key(HashKey *, u_int32_t, u_int32_t, u_int32_t);
+idx_page_content * add_new_key(idx_page_content *, idx_page_content *);
 void write_keys(u_int32_t *, idx_page_content *);
 void destroy_list(idx_page_content *);
 void ht_to_db(hashtable *, CFG *);
-int split_sheet(void *, HashKey *, u_int32_t, u_int32_t, CFG *, Chain *);
-
+int split(void *, idx_page_content *, CFG *, Chain *);
+int raise_median(idx_page_content *, Chain *, CFG *);

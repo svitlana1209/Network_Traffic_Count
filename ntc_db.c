@@ -520,6 +520,7 @@ u_int32_t N_page, keys_limit, current_level, count, last_level;
 int flag, idx;
 void *addr_page;
 Chain *cell_head, *cell_tail;
+idx_page_content *new_key;
 
     idx_registry = config->idx_page_registry;
     idx = config->idx;
@@ -557,7 +558,8 @@ Chain *cell_head, *cell_tail;
         N_page = choice_offset(top_of_page, hkey);
     }
     /* Last level: */
-    flag = split_sheet(addr_page, hkey, db_page_number, offset_in_db_page, config, cell_head);
+    new_key = key(hkey, N_page, db_page_number, offset_on_db_page);
+    flag = split(addr_page, new_key, config, cell_head);
     *count_idx_pages = config->idx_page_count;
     destroy_chain(cell_head);
     return flag;
@@ -660,7 +662,7 @@ void *page_addr;
 
 void add_key_to_current_idx_page(u_int32_t *ptr, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
 u_int32_t offset_lower_level, this_level, ymd_hkey;
-idx_page_content *list;
+idx_page_content *list, *new_key;
 u_int32_t *count;
 
     count = ptr;
@@ -678,7 +680,8 @@ u_int32_t *count;
     }
     else {
         list = upload_keys(*count, ptr);
-        list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+        new_key = key(hkey, offset_lower_level, db_page_number, offset_on_db_page);
+        list = add_new_key(list, new_key);
         write_keys(ptr, list);
         destroy_list(list);
     }
@@ -712,11 +715,9 @@ u_int32_t i;
     return list;
 }
 
-idx_page_content * add_new_key(idx_page_content *head, HashKey *hkey, u_int32_t offset_lower_level, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
-int rez_compare;
-idx_page_content *list, *new_key, *tmp;
+idx_page_content * key(HashKey *hkey, u_int32_t offset_lower_level, u_int32_t db_page_number, u_int32_t offset_on_db_page) {
+idx_page_content *new_key;
 
-    list = head;
     new_key = (idx_page_content *)malloc(sizeof(idx_page_content));
     new_key->ymd   = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
     new_key->srcIP = hkey->srcIP;
@@ -725,6 +726,14 @@ idx_page_content *list, *new_key, *tmp;
     new_key->db_page_number     = db_page_number;
     new_key->offset_on_db_page  = offset_on_db_page
 
+    return new_key;
+}
+
+idx_page_content * add_new_key(idx_page_content *head, idx_page_content *new_key) {
+int rez_compare;
+idx_page_content *list, *tmp;
+
+    list = head;
     while (list) {
         rez_compare = compare_keys(list->ymd, list->srcIP, list->dstIP, hkey);
         if (rez_compare < 0)  {
@@ -806,7 +815,7 @@ HashKey *hkey;
     The function accepts: Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
     The function returns -1 if the tree is full and 0 if a normal expansion has occurred.
 */
-int split_sheet(void *addr_page, HashKey *hkey, u_int32_t db_page_number, u_int32_t offset_in_db_page, CFG *config, Chain *cell_head) {
+int split(void *addr_page, idx_page_content *new_key, CFG *config, Chain *cell_head) {
 u_int32_t *ptr, *count;
 u_int32_t level, n, i, new_page_number;
 idx_page_content *list, *median;
@@ -820,7 +829,7 @@ Page_registry *idx_registry;
     level = *(ptr + 1)
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     list = upload_keys(*count, (ptr+1));
-    list = add_new_key(list, hkey, offset_lower_level, db_page_number, offset_on_db_page);
+    list = add_new_key(list, new_key);
     n = (*count) / 2;
     for (i=0; i < n; i++) {
         *(++ptr) = list->ymd;
@@ -856,5 +865,35 @@ Page_registry *idx_registry;
     flag = raise_median(median, cell_head, config);
     destroy_list(list);
     return flag;
+}
+
+int raise_median(idx_page_content *median, Chain *cell_head, CFG *config) {
+Chain *cell;
+u_int32_t *ptr, *count;
+u_int32_t key_limit, current_level;
+idx_page_content *list;
+int flag;
+
+    for (cell=cell_head; cell->next != NULL; cell=cell->next) ;
+    cell = cell->prev;
+    ptr = count = (u_int32_t *)(cell->addr_page);
+    current_level = *(ptr + 1);
+    keys_limit = 2*N_IDX;
+    median->offset_lower_level = 0;
+
+    if (*count < keys_limit) {
+        list = upload_keys(*count, ptr);
+        list = add_new_key(list, median);
+        list = check_shift_offset(list);
+        write_keys(ptr, list);
+        destroy_list(list);
+        return 0;
+    }
+    else {
+        if (current_level == 0)
+            return -1; /* tree is full */
+        else
+            flag = split(cell->addr_page, median, config, cell); /* cell level (bottom is better) */
+    }
 }
 
