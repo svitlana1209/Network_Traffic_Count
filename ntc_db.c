@@ -327,10 +327,10 @@ Page_registry *tmp;
     The root page is never removed from the Registry.
     The page removal occurs depending on the parameter:
     1) (Chain *) == NULL. To map a new page, the function will unmap any page except the root.
-    2) (Chain *) != NULL. A Chain of pages passed by a key is transmitted to the function.
+    2) (Chain *) != NULL. A Chain of pages passed by a key is transmitted to the function (the tail of the chain is transmitted).
                           This means that you can unmap any page that does not belong to the Chain (except the root).
 */
-void * map_page_from_hdd_to_registry(Page_registry *registry, u_int32_t N_page, int target_file, Chain *cell_0) {
+void * map_page_from_hdd_to_registry(Page_registry *registry, u_int32_t N_page, int target_file, Chain *cell) {
 void *new_addr_page;
 Page_registry *tmp, *new_rec;
 u_int32_t i;
@@ -378,7 +378,7 @@ off_t place;
         /* Check the Registry elements for entering the Chain.
            Remove the page not belonging to the Chain from the Registry, write the address of the new page in its place: */
         while (tmp != NULL) {
-            if (page_in_chain(tmp->page_addr, cell_0))
+            if (page_in_chain(tmp->page_addr, cell))
                 tmp = tmp->next;
             else {
                 new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
@@ -402,15 +402,15 @@ off_t place;
     */
 }
 
-bool page_in_chain(void *addr, Chain *cell_0) {
+bool page_in_chain(void *addr, Chain *cell_tail) {
 Chain *cell_current;
 
-    cell_current = cell_0;
+    cell_current = cell_tail;
     while (cell_current != NULL) {
         if (addr == cell_current->addr_page)
             return true;
         else
-            cell_current = cell_current->next;
+            cell_current = cell_current->prev;
     }
     return false;
 }
@@ -544,7 +544,7 @@ idx_page_content *new_key;
     while (N_page != 0xFFFFFFFF) {
         addr_page = locate_page_in_registry(idx_registry, N_page);
         if (addr_page == NULL)
-            addr_page = map_page_from_hdd_to_registry(idx_registry, N_page, idx, cell_head);
+            addr_page = map_page_from_hdd_to_registry(idx_registry, N_page, idx, cell_tail);
         top_of_page = (u_int32_t *)addr_page;
         count = *top_of_page;
         current_level = *(top_of_page + 1);
@@ -559,7 +559,7 @@ idx_page_content *new_key;
     }
     /* Last level: */
     new_key = key(hkey, N_page, db_page_number, offset_on_db_page);
-    flag = split(addr_page, new_key, config, cell_head);
+    flag = split(addr_page, new_key, config, cell_tail);
     *count_idx_pages = config->idx_page_count;
     destroy_chain(cell_head);
     return flag;
@@ -815,7 +815,7 @@ HashKey *hkey;
     The function accepts: Chain - a chain of page addresses (from the bottom level to the root) through which the key has passed.
     The function returns -1 if the tree is full and 0 if a normal expansion has occurred.
 */
-int split(void *addr_page, idx_page_content *new_key, CFG *config, Chain *cell_head) {
+int split(void *addr_page, idx_page_content *new_key, CFG *config, Chain *cell_tail) {
 u_int32_t *ptr, *count;
 u_int32_t level, n, i, new_page_number;
 idx_page_content *list, *median;
@@ -845,7 +845,7 @@ Page_registry *idx_registry;
     for (i=0; i < n; i++)
         *(++ptr) = 0;
     new_page_number = add_page(level);
-    addr_new_page = map_page_from_hdd_to_registry(idx_registry, new_page_number, idx, cell_head);
+    addr_new_page = map_page_from_hdd_to_registry(idx_registry, new_page_number, idx, cell_tail);
     ptr = count = (u_int32_t *)addr_new_page;
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     n = 0;
@@ -862,20 +862,19 @@ Page_registry *idx_registry;
         list = list->next;
     }
     *count = n;
-    flag = raise_median(median, cell_head, config);
+    flag = raise_median(median, cell_tail, config);
     destroy_list(list);
     return flag;
 }
 
-int raise_median(idx_page_content *median, Chain *cell_head, CFG *config) {
+int raise_median(idx_page_content *median, Chain *cell_tail, CFG *config) {
 Chain *cell;
 u_int32_t *ptr, *count;
 u_int32_t key_limit, current_level;
 idx_page_content *list;
 int flag;
 
-    for (cell=cell_head; cell->next != NULL; cell=cell->next) ;
-    cell = cell->prev;
+    cell = cell_tail->prev;
     ptr = count = (u_int32_t *)(cell->addr_page);
     current_level = *(ptr + 1);
     keys_limit = 2*N_IDX;
@@ -893,7 +892,7 @@ int flag;
         if (current_level == 0)
             return -1; /* tree is full */
         else
-            flag = split(cell->addr_page, median, config, cell); /* cell level (bottom is better) */
+            flag = split(cell->addr_page, median, config, cell);
     }
 }
 
