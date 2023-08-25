@@ -492,7 +492,7 @@ u_int8_t new_page;
     }
     flag = add_key_to_idx(hkey, *page_for_write, begin_cur_record, config);
     if (flag < 0)
-        quit("Split page error\n");
+        quit("Split page error. The IDX tree is full.\n");
 }
 
 void unload_page(Page_registry *registry, void *addr_page) {
@@ -894,5 +894,6 @@ int flag;
         else
             flag = split(cell->addr_page, median, config, cell);
     }
+    return flag;
 }
 
