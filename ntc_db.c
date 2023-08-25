@@ -850,6 +850,7 @@ Page_registry *idx_registry;
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     n = 0;
     median = list;
+    median->offset_lower_level = new_page_number;
     list = list->next;
     while (list) {
         *(++ptr) = list->ymd;
@@ -878,12 +879,10 @@ int flag;
     ptr = count = (u_int32_t *)(cell->addr_page);
     current_level = *(ptr + 1);
     keys_limit = 2*N_IDX;
-    median->offset_lower_level = 0;
 
     if (*count < keys_limit) {
         list = upload_keys(*count, ptr);
         list = add_new_key(list, median);
-        list = check_shift_offset(list);
         write_keys(ptr, list);
         destroy_list(list);
         return 0;
