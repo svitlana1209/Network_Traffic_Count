@@ -65,20 +65,17 @@ u_int8_t d;
 }
 
 int compare_keys(u_int32_t current_srcIP, u_int32_t current_dstIP, u_int32_t new_srcIP, u_int32_t new_dstIP) {
-int result;
+int src, dst, rez;
 
-    if (new_srcIP > current_srcIP) result = 1;
-    else {
-        if (new_srcIP < current_srcIP) result = -1;
-        else {
-            if (new_dstIP > current_dstIP) result = 1;
-            else {
-                if (new_dstIP < current_dstIP) result = -1;
-                else
-                    result = 0;
-            }
-        }
-    }
-    return result;
+    src = new_srcIP - current_srcIP;
+    dst = new_dstIP - current_dstIP;
+
+    if ((src == 0) && (dst == 0)) rez = 0;
+    if (src > 0) rez =  1;
+    if (src < 0) rez = -1;
+    if (dst > 0) rez =  1;
+    if (dst < 0) rez = -1;
+
+    return rez;
 }
 

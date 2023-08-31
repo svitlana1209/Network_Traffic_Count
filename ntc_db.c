@@ -202,7 +202,7 @@ long long int poz;
             while (hkey) {
                 poz = locate_record(hkey, cfg.idx, cfg.idx_page_registry);
                 if (poz > 0)
-                    update_rec_in_db(&cfg, *poz, hkey);
+                    update_rec_in_db(&cfg, &poz, hkey);
                 else
                     add_rec_to_db(&cfg, hkey);
                 hkey = hkey->next;
@@ -242,7 +242,7 @@ int rez_compare;
         offset_db = *ptr;       /* db_offset_on_page */
 
 
-        rez_compare = compare_keys(ymd_field, srcIP, dstIP, hkey);
+        rez_compare = compare(ymd_field, srcIP, dstIP, hkey);
         if (rez_compare == 0) {
             address = page_db;
             address = (address << 32) | offset_db;
@@ -262,7 +262,7 @@ int rez_compare;
                     ptr++;
                 }
             }
-            if change_page = 1 {
+            if (change_page == 1) {
                 if (next_offset == 0)
                     return 0;                   /* Reached the last level. There is no key in the tree. */
                 else {
@@ -277,6 +277,7 @@ int rez_compare;
             }
         }
     }
+    return address;
 }
 
 /*
@@ -285,9 +286,9 @@ int rez_compare;
     -1 if the new key is less than the existing one
      1 if the new key is greater than the existing one
 */
-int compare_keys (u_int32_t ymd_db, u_int32_t srcIP_db, u_int32_t dstIP_db, HashKey *hkey) {
+int compare(u_int32_t ymd_db, u_int32_t srcIP_db, u_int32_t dstIP_db, HashKey *hkey) {
 u_int32_t ymd_hkey;
-int ymd, src, dst;
+int ymd, src, dst, rez;
 
     ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
 
@@ -295,13 +296,15 @@ int ymd, src, dst;
     src = hkey->srcIP - srcIP_db;
     dst = hkey->dstIP - dstIP_db;
 
-    if ((ymd == 0) && (src == 0) && (dst == 0)) return 0;
-    if (ymd > 0) return  1;
-    if (ymd < 0) return -1;
-    if (src > 0) return  1;
-    if (src < 0) return -1;
-    if (dst > 0) return  1;
-    if (dst < 0) return -1;
+    if ((ymd == 0) && (src == 0) && (dst == 0)) rez = 0;
+    if (ymd > 0) rez =  1;
+    if (ymd < 0) rez = -1;
+    if (src > 0) rez =  1;
+    if (src < 0) rez = -1;
+    if (dst > 0) rez =  1;
+    if (dst < 0) rez = -1;
+
+    return rez;
 }
 
 void * locate_page_in_registry(Page_registry *registry, u_int32_t N_page) {
@@ -360,7 +363,7 @@ off_t place;
     /* No free space in the Registry: */
     tmp = registry;
     /* The Chain is not transmitted. You can unmap any page except the root: */
-    if (cell_0 == NULL) {
+    if (cell == NULL) {
         tmp = tmp->next;
         /* Mapping a new page to memory (N_page*8192): */
         new_addr_page = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, target_file, place);
@@ -421,7 +424,7 @@ u_int32_t page_for_write, offset_on_page;
 u_int32_t *ptr;
 long long int *lli;
 void *addr_page;
-Page_registry *db_registry
+Page_registry *db_registry;
 
     page_for_write = *poz >> 32;
     offset_on_page = *poz;
@@ -566,7 +569,7 @@ idx_page_content *new_key;
 }
 
 Chain * new_cell(Chain *old_tail, void *addr_page) {
-Chain *nex_tail;
+Chain *new_tail;
 
     new_tail = (Chain *)malloc(sizeof(Chain));
     new_tail->addr_page = addr_page;
@@ -605,6 +608,7 @@ u_int32_t choice_offset(u_int32_t *ptr, HashKey *hkey) {
 u_int32_t count, level, i, srcIP, dstIP, ymd_field;
 u_int32_t *offset_p, *offset_i;
 int rez_compare;
+u_int8_t step;
 
     count = *ptr;
     level = *(ptr + 1);
@@ -619,7 +623,7 @@ int rez_compare;
         offset_p = offset_i;
         offset_i = ptr;         /* page_lower_level */
         step = 3;
-        rez_compare = compare_keys(ymd_field, srcIP, dstIP, hkey);
+        rez_compare = compare(ymd_field, srcIP, dstIP, hkey);
         if (rez_compare < 0)    /* if the new key (hkey) is less than the current one */
             break;
     }
@@ -638,7 +642,7 @@ int rez_compare;
 u_int32_t add_page(u_int32_t level) {
 off_t offset;
 u_int32_t *ptr;
-u_int32_t offest_0;
+u_int32_t offset_0;
 void *page_addr;
 
     (cfg.idx_page_count)++;
@@ -724,7 +728,7 @@ idx_page_content *new_key;
     new_key->dstIP = hkey->dstIP;
     new_key->offset_lower_level = offset_lower_level;
     new_key->db_page_number     = db_page_number;
-    new_key->offset_on_db_page  = offset_on_db_page
+    new_key->offset_on_db_page  = offset_on_db_page;
 
     return new_key;
 }
@@ -735,7 +739,7 @@ idx_page_content *list, *tmp;
 
     list = head;
     while (list) {
-        rez_compare = compare_keys(list->ymd, list->srcIP, list->dstIP, hkey);
+        rez_compare = compare(list->ymd, list->srcIP, list->dstIP, hkey);
         if (rez_compare < 0)  {
             if (list->prev == NULL) {
                 list->prev = new_key;
@@ -768,7 +772,7 @@ void write_keys(u_int32_t *ptr, idx_page_content *list) {
         *(++ptr) = list->ymd;
         *(++ptr) = list->srcIP;
         *(++ptr) = list->dstIP;
-        *(++ptr) = list->ofset_lower_level;
+        *(++ptr) = list->offset_lower_level;
         *(++ptr) = list->db_page_number;
         *(++ptr) = list->offset_on_db_page;
         list = list->next;
@@ -826,7 +830,7 @@ Page_registry *idx_registry;
     idx_registry = config->idx_page_registry;
     idx = config->idx;
     ptr = count = (u_int32_t *)addr_page;
-    level = *(ptr + 1)
+    level = *(ptr + 1);
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     list = upload_keys(*count, (ptr+1));
     list = add_new_key(list, new_key);
@@ -871,7 +875,7 @@ Page_registry *idx_registry;
 int raise_median(idx_page_content *median, Chain *cell_tail, CFG *config) {
 Chain *cell;
 u_int32_t *ptr, *count;
-u_int32_t key_limit, current_level;
+u_int32_t keys_limit, current_level;
 idx_page_content *list;
 int flag;
 
@@ -890,9 +894,10 @@ int flag;
     else {
         if (current_level == 0)
             return -1; /* tree is full */
-        else
+        else {
             flag = split(cell->addr_page, median, config, cell);
+            return flag;
+        }
     }
-    return flag;
 }
 
