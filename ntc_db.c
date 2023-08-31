@@ -225,7 +225,7 @@ u_int32_t *ptr, *count;
 void *addr_page;
 u_int8_t change_page;
 u_int16_t i;
-u_int32_t srcIP, dstIP, ymd_field, hkey_ymd, offset_previous, offset_i, next_offset, page_db, offset_db;
+u_int32_t srcIP, dstIP, ymd_field, offset_previous, offset_i, next_offset, page_db, offset_db;
 int rez_compare;
 
     addr_page = idx_registry->page_addr;   /* core IDX page */
@@ -403,6 +403,7 @@ off_t place;
         the Registry to add a new page. And will return Null.
         The height of the tree should be less than NUMBER_PAGES_OPEN.
     */
+    return new_addr_page;
 }
 
 bool page_in_chain(void *addr, Chain *cell_tail) {
