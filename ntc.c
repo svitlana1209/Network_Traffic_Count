@@ -138,7 +138,7 @@ void call_exit() {
     restore_terminal(&init_term, t_tty);
     if (db == 1) {
         printf(" %sUploading data to the database ...%s\n", WHITE_TEXT, RESET);
-        //upload_to_database(ht_head);
+        upload_to_database(ht_head);
         printf(" %sDone%s\n", GREEN_TEXT, RESET);
     }
 

@@ -18,6 +18,7 @@ void add_key_to_current_idx_page(u_int32_t *, HashKey *, u_int32_t, u_int32_t);
 idx_page_content * upload_keys(u_int32_t, u_int32_t *);
 idx_page_content * key(HashKey *, u_int32_t, u_int32_t, u_int32_t);
 idx_page_content * add_new_key(idx_page_content *, idx_page_content *);
+HashKey * make_hkey(idx_page_content *);
 void write_keys(u_int32_t *, idx_page_content *);
 void destroy_list(idx_page_content *);
 void ht_to_db(hashtable *, CFG *);

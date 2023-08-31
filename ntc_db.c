@@ -8,6 +8,7 @@
 #include <ntc.h>
 #include <ntc_db.h>
 #include <ntc_tools.h>
+
 /*
     DB page structure:
     +----------------+-------------+-------------+     +-------------+
@@ -228,6 +229,7 @@ u_int16_t i;
 u_int32_t srcIP, dstIP, ymd_field, offset_previous, offset_i, next_offset, page_db, offset_db;
 int rez_compare;
 
+    address = 0;
     addr_page = idx_registry->page_addr;   /* core IDX page */
     ptr = count = (u_int32_t *)(addr_page);
     offset_previous = *(ptr + 4);             /* offset_0 */
@@ -433,7 +435,7 @@ Page_registry *db_registry;
     db_registry = config->db_page_registry;
 
     addr_page = locate_page_in_registry(db_registry, page_for_write);
-    if (addr_page == NULL) {
+    if (addr_page == NULL)
         addr_page = map_page_from_hdd_to_registry(db_registry, page_for_write, db, NULL);
     ptr = (u_int32_t *)addr_page;
     ptr = ptr + offset_on_page + 2;
@@ -441,6 +443,7 @@ Page_registry *db_registry;
     *lli = *lli + hkey->vol;
     ptr = ptr + 2;
     *ptr = *ptr + hkey->packs;
+
 }
 
 void add_rec_to_db(CFG *config, HashKey *hkey) {
@@ -670,6 +673,7 @@ u_int32_t offset_lower_level, this_level, ymd_hkey;
 idx_page_content *list, *new_key;
 u_int32_t *count;
 
+    ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
     count = ptr;
     this_level = *(ptr + 1);
     offset_lower_level = (this_level == (IDX_LEVEL_LIMIT - 1)) ? 0xFFFFFFFF : 0;
@@ -687,6 +691,8 @@ u_int32_t *count;
         list = upload_keys(*count, ptr);
         new_key = key(hkey, offset_lower_level, db_page_number, offset_on_db_page);
         list = add_new_key(list, new_key);
+        if (list == NULL)
+            quit("Error adding ney key\n");
         write_keys(ptr, list);
         destroy_list(list);
     }
@@ -737,7 +743,9 @@ idx_page_content *new_key;
 idx_page_content * add_new_key(idx_page_content *head, idx_page_content *new_key) {
 int rez_compare;
 idx_page_content *list, *tmp;
+HashKey *hkey;
 
+    hkey = make_hkey(new_key);
     list = head;
     while (list) {
         rez_compare = compare(list->ymd, list->srcIP, list->dstIP, hkey);
@@ -746,6 +754,7 @@ idx_page_content *list, *tmp;
                 list->prev = new_key;
                 new_key->next = list;
                 new_key->prev = NULL;
+                free(hkey);
                 return new_key;
             }
             else {
@@ -754,6 +763,7 @@ idx_page_content *list, *tmp;
                 new_key->next = list;
                 new_key->prev = tmp;
                 tmp->next = new_key;
+                free(hkey);
                 return head;
             }
         }
@@ -761,10 +771,34 @@ idx_page_content *list, *tmp;
             list->next = new_key;
             new_key->prev = list;
             new_key->next = NULL;
+            free(hkey);
             return head;
         }
         list = list->next;
     }
+    return NULL;
+}
+
+HashKey * make_hkey(idx_page_content *new_key) {
+HashKey *hkey;
+u_int16_t y1;
+u_int8_t d1, m1;
+
+    d1 =  new_key->ymd & 0x000000FF;
+    m1 = (new_key->ymd & 0x0000FFFF) >> 8;
+    y1 =  new_key->ymd >> 16;
+
+    hkey = (HashKey *)malloc(sizeof(HashKey));
+    hkey->year  = y1;
+    hkey->month = m1;
+    hkey->day   = d1;
+    hkey->srcIP = new_key->srcIP;
+    hkey->dstIP = new_key->dstIP;
+    hkey->vol   = 0;
+    hkey->packs = 0;
+    hkey->next  = NULL;
+    hkey->prev  = NULL;
+    return hkey;
 }
 
 void write_keys(u_int32_t *ptr, idx_page_content *list) {
@@ -835,6 +869,8 @@ Page_registry *idx_registry;
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;
     list = upload_keys(*count, (ptr+1));
     list = add_new_key(list, new_key);
+    if (list == NULL)
+        quit("Error adding ney key\n");
     n = (*count) / 2;
     for (i=0; i < n; i++) {
         *(++ptr) = list->ymd;
@@ -890,15 +926,14 @@ int flag;
         list = add_new_key(list, median);
         write_keys(ptr, list);
         destroy_list(list);
-        return 0;
+        flag = 0;
     }
     else {
         if (current_level == 0)
-            return -1; /* tree is full */
-        else {
+            flag = -1; /* tree is full */
+        else
             flag = split(cell->addr_page, median, config, cell);
-            return flag;
-        }
     }
+    return flag;
 }
 
