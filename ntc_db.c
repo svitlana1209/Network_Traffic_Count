@@ -103,21 +103,25 @@ const char *fname_db="ntc.db", *fname_idx="ntc.idx";
 struct stat st;
 HashKey *hkey;
 long long int poz;
+u_int8_t new;
 
+    new = 0;
     if ((cfg.db  = open (fname_db,  O_CREAT|O_RDWR|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) < 0)
         quit("\nCan't write ntc.db\n");
     if ((cfg.idx = open (fname_idx, O_CREAT|O_RDWR|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) < 0)
         quit("\nCan't write ntc.idx\n");
-
-
-    if (fstat(cfg.db, &st) == -1) quit ("fstat error.");
-    if (st.st_size < PAGE_SIZE) ftruncate (cfg.db, PAGE_SIZE);
-    if (fstat(cfg.idx, &st) == -1) quit ("fstat error.");
+    if (fstat(cfg.db, &st) == -1)
+        quit ("fstat error.");
+    if (fstat(cfg.idx, &st) == -1)
+        quit ("fstat error.");
+    if (st.st_size < PAGE_SIZE) {
+        ftruncate (cfg.db, PAGE_SIZE);
+        new = 1;
+    }
     if (st.st_size < PAGE_SIZE) ftruncate (cfg.idx, PAGE_SIZE);
-
     open_page_registry(&cfg);
 
-    if (st.st_size < 1)
+    if (new == 1)
         ht_to_db(ht, &cfg);
     else {
         while (ht) {
