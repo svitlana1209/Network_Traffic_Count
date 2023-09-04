@@ -178,7 +178,7 @@ int rez_compare;
         offset_i  = *(ptr++);   /* page_lower_level */
         page_db   = *(ptr++);   /* db_page_number */
         offset_db = *ptr;       /* db_offset_on_page */
-
+        change_page = 0;
 
         rez_compare = compare(ymd_field, srcIP, dstIP, hkey);
         if (rez_compare == 0) {
@@ -187,22 +187,24 @@ int rez_compare;
             return address;
         }
         else {
-            change_page = 1;
-            if (rez_compare < 0)
+            if (rez_compare < 0) {
                 next_offset = offset_previous;  /* New_key < Key_i, take 'offset' to the left of the Key_i */
+                change_page = 1;
+            }
             else {
-                if (*count == i)
+                if (*count == i) {
                     next_offset = offset_i;     /* Last key on the page. Take last 'offset', because New_key > Key_last */
+                    change_page = 1;
+                }
                 else {
                     offset_previous = offset_i; /* The key is not the last, we take the next key from the page */
-                    change_page = 0;
                     i++;
                     ptr++;
                 }
             }
             if (change_page == 1) {
-                if (next_offset == 0)
-                    return 0;                   /* Reached the last level. There is no key in the tree. */
+                if (next_offset == 0 || next_offset == 0xFFFFFFFF)
+                    return 0;                   /* There is no key in the tree. */
                 else {
                     addr_page = locate_page_in_registry(idx_registry, next_offset);
                     if (addr_page == NULL)
