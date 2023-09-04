@@ -43,6 +43,11 @@ u_int32_t *ptr;
         *(++ptr) = 1; /* page_number */
         *(++ptr) = 1; /* page_count (Number of pages in idx file) */
         *(++ptr) = 0; /* offset_0 */
+         config->idx_page_count = 1;
+
+    }
+    else {
+         config->idx_page_count = *(ptr + 3);
     }
 
     db_pr = (Page_registry *)malloc(sizeof(Page_registry));
@@ -64,13 +69,17 @@ u_int32_t *ptr;
 void close_page_registry(CFG *config) {
 Page_registry *idx_ree, *db_ree, *t;
 u_int32_t *ptr;
-void *db_start_page;
+void *start_page;
 
     db_ree  = config->db_page_registry;
-    db_start_page = db_ree->page_addr;
-    ptr = (u_int32_t*)db_start_page;
+    start_page = db_ree->page_addr;
+    ptr = (u_int32_t*)start_page;
     *(ptr+4) = config->db_records;
+
     idx_ree  = config->idx_page_registry;
+    start_page = idx_ree->page_addr;
+    ptr = (u_int32_t*)start_page;
+    *(ptr+3) = config->idx_page_count;
 
     if (db_ree != NULL) {
         while (db_ree->next != NULL) {
@@ -483,6 +492,7 @@ idx_page_content *new_key;
         count = *top_of_page;
         current_level = *(top_of_page + 1);
         keys_limit = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
+        sleep(1);
         if (count < (keys_limit)) {
             add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page);
             destroy_chain(cell_head);
@@ -562,7 +572,6 @@ u_int8_t step;
         offset_p = offset_i;
     if (*offset_p == 0)                 /* no page */
         *offset_p = add_page(level+1);  /* lower level page */
-
     return *offset_p;
 }
 
