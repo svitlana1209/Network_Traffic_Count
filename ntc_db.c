@@ -154,7 +154,6 @@ int count;
             ht =  ht->next;
         }
     }
-
     close_page_registry(&cfg);
     close(cfg.db);
     close(cfg.idx);

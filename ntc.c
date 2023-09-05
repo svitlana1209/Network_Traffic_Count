@@ -137,7 +137,6 @@ void call_exit() {
     generate_report(ht_head, &all_traf, ip, network_interface_idx, start_time);
     restore_terminal(&init_term, t_tty);
     if (db == 1) {
-//        printf(" %sUploading data to the database ...%s\n", WHITE_TEXT, RESET);
         upload_to_database(ht_head);
         printf("\n %sDone%s\n", GREEN_TEXT, RESET);
     }
