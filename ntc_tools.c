@@ -79,3 +79,13 @@ int src, dst, rez;
     return rez;
 }
 
+int ht_count(hashtable *ht) {
+int count;
+
+    count = 0;
+    while (ht) {
+        count++;
+        ht =  ht->next;
+    }
+    return count;
+}

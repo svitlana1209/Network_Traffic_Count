@@ -21,6 +21,6 @@ idx_page_content * add_new_key(idx_page_content *, idx_page_content *);
 HashKey * make_hkey(idx_page_content *);
 void write_keys(u_int32_t *, idx_page_content *);
 void destroy_list(idx_page_content *);
-void ht_to_db(hashtable *, CFG *);
+void ht_to_db(hashtable *, CFG *, int);
 int split(void *, idx_page_content *, CFG *, Chain *);
 int raise_median(idx_page_content *, Chain *, CFG *);

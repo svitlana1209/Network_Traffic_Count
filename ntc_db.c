@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -113,6 +114,8 @@ struct stat st;
 HashKey *hkey;
 long long int poz;
 u_int8_t new;
+float i;
+int count;
 
     new = 0;
     if ((cfg.db  = open (fname_db,  O_CREAT|O_RDWR|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) < 0)
@@ -130,8 +133,10 @@ u_int8_t new;
     if (st.st_size < PAGE_SIZE) ftruncate (cfg.idx, PAGE_SIZE);
     open_page_registry(&cfg);
 
+    count = ht_count(ht);
+    i = 1;
     if (new == 1)
-        ht_to_db(ht, &cfg);
+        ht_to_db(ht, &cfg, count);
     else {
         while (ht) {
             hkey = ht->ptr_to_hashkey;
@@ -143,6 +148,9 @@ u_int8_t new;
                     add_rec_to_db(&cfg, hkey);
                 hkey = hkey->next;
             }
+            printf("\r%s Uploading data to the database: %d%% %s", WHITE_TEXT, (int)((i/count)*100), RESET);
+            fflush(stdout);
+            i++;
             ht =  ht->next;
         }
     }
@@ -500,7 +508,6 @@ idx_page_content *new_key;
         count = *top_of_page;
         current_level = *(top_of_page + 1);
         keys_limit = (current_level == last_level) ? ((2*N_IDX)-1) : N_IDX;
-        sleep(1);
         if (count < (keys_limit)) {
             add_key_to_current_idx_page(top_of_page, hkey, db_page_number, offset_on_db_page);
             destroy_chain(cell_head);
@@ -769,15 +776,20 @@ idx_page_content *tmp;
     free(list);
 }
 
-void ht_to_db(hashtable *ht, CFG *config) {
+void ht_to_db(hashtable *ht, CFG *config, int count) {
 HashKey *hkey;
+float i;
 
+    i = 1;
     while (ht) {
         hkey = ht->ptr_to_hashkey;
         while (hkey) {
             add_rec_to_db(config, hkey);
             hkey = hkey->next;
         }
+        printf("\r%s Uploading data to the database: %d%% %s", WHITE_TEXT, (int)((i/count)*100), RESET);
+        fflush(stdout);
+        i++;
         ht =  ht->next;
     }
 }

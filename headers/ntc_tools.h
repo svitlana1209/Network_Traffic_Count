@@ -11,4 +11,4 @@ void quit(char *);
 int get_from_packet(packet *, u_int8_t, u_int8_t);
 u_int8_t detect_direction(u_int32_t, u_int32_t, u_int32_t);
 int compare_keys(u_int32_t, u_int32_t, u_int32_t, u_int32_t);
-
+int ht_count(hashtable *);
