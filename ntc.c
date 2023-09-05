@@ -147,13 +147,9 @@ void call_exit() {
 
     if (pthread_cancel(thread_display_dyn) != 0)
         quit("Can't cancel the thread (display info)");
-    if ((pthread_join(thread_display_dyn, NULL)) != 0)
-        quit("Thread join failed (display info)");
 
     if (pthread_cancel(thread_queue) != 0)
         quit("Can't cancel the thread (queue)");
-    if ((pthread_join(thread_queue, NULL)) != 0)
-        quit("Thread join failed (queue)");
 
     destroy_queue(queue_head);
     destroy_hashtable(ht_head);

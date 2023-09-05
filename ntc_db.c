@@ -443,18 +443,24 @@ u_int8_t new_page;
 void unload_page(Page_registry *registry, void *addr_page) {
 Page_registry *tmp, *head, *tail;
 
-    for (tmp = registry; tmp->page_addr != addr_page; tmp = tmp->next) {
-        if (tmp == NULL)
-            quit("Page unload error\n");
+    for (tmp = registry; tmp != NULL; tmp = tmp->next) {
+        if (tmp->page_addr == addr_page)
+            break;
     }
+    if (tmp == NULL)
+        quit("Page unload error\n");
     if (tmp != registry) {
         head = tmp->prev;
         tail = tmp->next;
         head->next = tail;
-        tail->prev = head;
+        if (tail != NULL)
+            tail->prev = head;
         free(tmp);
         msync(addr_page, PAGE_SIZE, MS_ASYNC);
         munmap(addr_page, PAGE_SIZE);
+    }
+    else {
+        quit("Can't unload the core page\n");
     }
 }
 
@@ -795,7 +801,7 @@ HashKey *hkey;
 int split(void *addr_page, idx_page_content *new_key, CFG *config, Chain *cell_tail) {
 u_int32_t *ptr, *count;
 u_int32_t level, n, i, new_page_number;
-idx_page_content *list, *median;
+idx_page_content *list, *median, *h_list;
 int flag, idx;
 void *addr_new_page;
 Page_registry *idx_registry;
@@ -809,6 +815,7 @@ Page_registry *idx_registry;
     list = add_new_key(list, new_key);
     if (list == NULL)
         quit("Error adding ney key\n");
+    h_list = list;
     n = (*count) / 2;
     for (i=0; i < n; i++) {
         *(++ptr) = list->ymd;
@@ -843,7 +850,7 @@ Page_registry *idx_registry;
     }
     *count = n;
     flag = raise_median(median, cell_tail, config);
-    destroy_list(list);
+    destroy_list(h_list);
     return flag;
 }
 
