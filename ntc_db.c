@@ -82,29 +82,19 @@ void *start_page;
     ptr = (u_int32_t*)start_page;
     *(ptr+3) = config->idx_page_count;
 
-    if (db_ree != NULL) {
-        while (db_ree->next != NULL) {
-            t = db_ree->next;
-            msync(db_ree->page_addr, PAGE_SIZE, MS_ASYNC);
-            munmap(db_ree->page_addr, PAGE_SIZE);
-            free(db_ree);
-            db_ree = t;
-        }
+    while (db_ree != NULL) {
+        t = db_ree->next;
         msync(db_ree->page_addr, PAGE_SIZE, MS_ASYNC);
         munmap(db_ree->page_addr, PAGE_SIZE);
         free(db_ree);
+        db_ree = t;
     }
-    if (idx_ree != NULL) {
-        while (idx_ree->next != NULL) {
-            t = idx_ree->next;
-            msync(idx_ree->page_addr, PAGE_SIZE, MS_ASYNC);
-            munmap(idx_ree->page_addr, PAGE_SIZE);
-            free(idx_ree);
-            idx_ree = t;
-        }
+    while (idx_ree != NULL) {
+        t = idx_ree->next;
         msync(idx_ree->page_addr, PAGE_SIZE, MS_ASYNC);
         munmap(idx_ree->page_addr, PAGE_SIZE);
         free(idx_ree);
+        idx_ree = t;
     }
 }
 
@@ -537,12 +527,11 @@ Chain *new_tail;
 void destroy_chain(Chain *cell) {
 Chain *tmp;
 
-    while (cell->next != NULL) {
+    while (cell != NULL) {
         tmp = cell->next;
         free(cell);
         cell = tmp;
     }
-    free (cell);
 }
 
 /* choice_offset() looks for which sublevel page the key can be written to.
@@ -686,6 +675,8 @@ idx_page_content *new_key;
     new_key->offset_lower_level = offset_lower_level;
     new_key->db_page_number     = db_page_number;
     new_key->offset_on_db_page  = offset_on_db_page;
+    new_key->next = NULL;
+    new_key->prev = NULL;
 
     return new_key;
 }
@@ -767,12 +758,11 @@ void write_keys(u_int32_t *ptr, idx_page_content *list) {
 void destroy_list(idx_page_content *list) {
 idx_page_content *tmp;
 
-    while (list->next != NULL) {
+    while (list != NULL) {
         tmp = list->next;
         free(list);
         list = tmp;
     }
-    free(list);
 }
 
 void ht_to_db(hashtable *ht, CFG *config, int count) {
