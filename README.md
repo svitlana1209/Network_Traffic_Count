@@ -22,6 +22,8 @@ In this case, the traffic will be saved and accumulated in the database. This in
 ```
 ./ntc enp3s0 db
 ```
+![](/screenshot/ntc_with_db.png)
+
    A report is also generated in a text file.</br>
 
 ## Prerequisites
