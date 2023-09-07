@@ -117,16 +117,12 @@ void call_init(){
 
     if (sem_init(&sem_get_pack, 0, 0) != 0)
         quit("Semaphore initialization failed (get_pack)");
-
     if (sem_init(&sem_ht, 0, 0) != 0)
         quit("Semaphore initialization failed (hashtable)");
-
     if ((pthread_create(&thread_wait_key, NULL, waiting_for_key, (void *)(t_tty))) != 0)
         quit("Thread creation failed (wait key)");
-
     if ((pthread_create(&thread_queue, NULL, process_queue, (void *)(queue_tail))) != 0)
         quit("Thread creation failed (queue)");
-
     if ((pthread_create(&thread_display_dyn, NULL, display_info, NULL ) ) != 0)
         quit("Thread creation failed (display_dyn)");
     print_head();
@@ -140,15 +136,11 @@ void call_exit() {
         upload_to_database(ht_head);
         printf("\n %sDone%s\n", GREEN_TEXT, RESET);
     }
-
     if ((pthread_join(thread_wait_key, NULL)) != 0)
         quit("Thread join failed (wait key)");
 
     if (pthread_cancel(thread_display_dyn) != 0)
         quit("Can't cancel the thread (display info)");
-
-    if (pthread_cancel(thread_queue) != 0)
-        quit("Can't cancel the thread (queue)");
 
     destroy_queue(queue_head);
     destroy_hashtable(ht_head);
