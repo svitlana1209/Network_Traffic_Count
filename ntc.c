@@ -139,9 +139,6 @@ void call_exit() {
     if ((pthread_join(thread_wait_key, NULL)) != 0)
         quit("Thread join failed (wait key)");
 
-    if (pthread_cancel(thread_display_dyn) != 0)
-        quit("Can't cancel the thread (display info)");
-
     destroy_queue(queue_head);
     destroy_hashtable(ht_head);
     sem_destroy(&sem_get_pack);
