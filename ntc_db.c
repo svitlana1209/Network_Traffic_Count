@@ -850,8 +850,8 @@ Page_registry *idx_registry;
         list = list->next;
     }
     *count = n;
-    flag = raise_median(median, cell_tail, config);
     destroy_list(h_list);
+    flag = raise_median(median, cell_tail, config);
     return flag;
 }
 
