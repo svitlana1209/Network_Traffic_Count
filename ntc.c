@@ -136,6 +136,7 @@ void call_exit() {
         upload_to_database(ht_head);
         printf("\n %sDone%s\n", GREEN_TEXT, RESET);
     }
+
     if ((pthread_join(thread_wait_key, NULL)) != 0)
         quit("Thread join failed (wait key)");
 
@@ -162,11 +163,6 @@ FILE *terminal;
 void * process_queue(void *tail) {
 Queue *tmp;
 packet pack;
-
-    if (pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL) != 0)
-        quit ("Thread setcancelstate failed");
-    if (pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL) != 0)
-        quit ("Thread setcanceltype failed");
 
     id_socket = listen_interface(network_interface_idx);
     queue_tail = (Queue *)(tail);
