@@ -91,21 +91,9 @@ IDX is implemented as b-tree.</br>
        6     db_offset_on_page      4        Offset inside the DB page relative to its beginning for the data of this key.
       -------- TOTAL ------------- 24 bytes
 
-    The schema of the IDX tree:</br>
-
+    The schema of the IDX tree:
 ![](/schema/schema_idx.png)
-
-The tree expansion starts from the bottom level of the tree - from the leaves.</br>
-A page of this level will be divided if a new key (k) cannot be added to it, because the number of keys on it = 2n.</br>
-At the current level, a blank page is created, but in fact it is added to the end of the file.</br>
-The content of the page and the new key k (i.e. 2n+1) are sorted, halved,</br>
-the first half is written back onto the page, and the second half onto a new blank page of the same level.</br>
-The key that is in the middle (median) goes up one page level.</br>
-If the "count" of this page does not exceed 2n, then add the median key to the page.</br>
-If the "count" exceeds 2n and does not allow insertion of a median key, then this page will also be divided.</br>
-Only the root is not divisible. If the root reaches 2n keys, then the tree is full, because its height does not exceed 3.</br>
-If it is necessary to split the root, i.e. increase the height of the tree, then you need to drop IDX_LEVEL_LIMIT</br>
-and set a variable.</br>
+   The tree expansion starts from the bottom level of the tree - from the leaves. A page of this level will be divided if a new key (k) cannot be added to it, because the number of keys on it = 2n. At the current level, a blank page is created, but in fact it is added to the end of the file. The content of the page and the new key k (i.e. 2n+1) are sorted, halved, the first half is written back onto the page, and the second half onto a new blank page of the same level. The key that is in the middle (median) goes up one page level. If the "count" of this page does not exceed 2n, then add the median key to the page. If the "count" exceeds 2n and does not allow insertion of a median key, then this page will also be divided. Only the root is not divisible. If the root reaches 2n keys, then the tree is full, because its height does not exceed 3. If it is necessary to split the root, i.e. increase the height of the tree, then you need to drop IDX_LEVEL_LIMIT and set a variable.</br>
 
 ## Prerequisites
 
