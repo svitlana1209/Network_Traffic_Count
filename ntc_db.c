@@ -225,23 +225,18 @@ int rez_compare;
 */
 int compare(u_int32_t ymd_db, u_int32_t srcIP_db, u_int32_t dstIP_db, HashKey *hkey) {
 u_int32_t ymd_hkey;
-int ymd, src, dst, rez;
 
     ymd_hkey = ((hkey->year) << 16) | (((hkey->month) << 8) | hkey->day);
 
-    ymd = ymd_hkey - ymd_db;
-    src = hkey->srcIP - srcIP_db;
-    dst = hkey->dstIP - dstIP_db;
+    if ((ymd_hkey == ymd_db) && (hkey->srcIP == srcIP_db) && (hkey->dstIP == dstIP_db)) return 0;
+    if (ymd_hkey > ymd_db) return  1;
+    if (ymd_hkey < ymd_db) return -1;
+    if (hkey->srcIP > srcIP_db) return  1;
+    if (hkey->srcIP < srcIP_db) return -1;
+    if (hkey->dstIP > dstIP_db) return  1;
+    if (hkey->dstIP < dstIP_db) return -1;
 
-    if ((ymd == 0) && (src == 0) && (dst == 0)) rez = 0;
-    if (ymd > 0) rez =  1;
-    if (ymd < 0) rez = -1;
-    if (src > 0) rez =  1;
-    if (src < 0) rez = -1;
-    if (dst > 0) rez =  1;
-    if (dst < 0) rez = -1;
-
-    return rez;
+    return 0;
 }
 
 void * locate_page_in_registry(Page_registry *registry, u_int32_t N_page) {
