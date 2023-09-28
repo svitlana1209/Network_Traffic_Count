@@ -92,6 +92,12 @@ typedef struct idx_page_cont {
     struct idx_page_cont *next, *prev;
 } idx_page_content;
 
+typedef struct idx_dates {
+    u_int32_t ymd;
+    struct idx_dates *next, *prev;
+} idx_dates;
+
+
 void call_init();
 void call_exit();
 void destroy_queue(Queue *);

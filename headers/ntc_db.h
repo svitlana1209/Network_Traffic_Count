@@ -24,3 +24,12 @@ void destroy_list(idx_page_content *);
 void ht_to_db(hashtable *, CFG *, int);
 int split(void *, idx_page_content *, CFG *, Chain *);
 int raise_median(idx_page_content *, Chain *, CFG *);
+#
+void gen_db_report(int, Page_registry *);
+idx_dates * select_dist_ymd(int, Page_registry *);
+bool check_new_date(idx_dates *, u_int32_t);
+idx_dates * add_new_date(idx_dates *, u_int32_t);
+idx_dates * check_offset(void *, idx_dates *, Page_registry *, int, Chain *);
+void destroy_dates(idx_dates *);
+Chain * cat_tail(Chain *);
+void print_tree_content(int, Page_registry *, idx_dates *);

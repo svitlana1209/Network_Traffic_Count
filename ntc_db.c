@@ -11,6 +11,7 @@
 #include <ntc_tools.h>
 
 CFG cfg;
+bool flag;
 
 void open_page_registry(CFG *config) {
 void *idx_start_page, *db_start_page;
@@ -82,14 +83,14 @@ void *start_page;
     ptr = (u_int32_t*)start_page;
     *(ptr+3) = config->idx_page_count;
 
-    while (db_ree != NULL) {
+    while (db_ree) {
         t = db_ree->next;
         msync(db_ree->page_addr, PAGE_SIZE, MS_ASYNC);
         munmap(db_ree->page_addr, PAGE_SIZE);
         free(db_ree);
         db_ree = t;
     }
-    while (idx_ree != NULL) {
+    while (idx_ree) {
         t = idx_ree->next;
         msync(idx_ree->page_addr, PAGE_SIZE, MS_ASYNC);
         munmap(idx_ree->page_addr, PAGE_SIZE);
@@ -144,6 +145,7 @@ int count;
             ht =  ht->next;
         }
     }
+    gen_db_report(cfg.idx, cfg.idx_page_registry);
     close_page_registry(&cfg);
     close(cfg.db);
     close(cfg.idx);
@@ -312,7 +314,7 @@ off_t place;
     else {
         /* Check the Registry elements for entering the Chain.
            Remove the page not belonging to the Chain from the Registry, write the address of the new page in its place: */
-        while (tmp != NULL) {
+        while (tmp) {
             if (page_in_chain(tmp->page_addr, cell))
                 tmp = tmp->next;
             else {
@@ -342,7 +344,7 @@ bool page_in_chain(void *addr, Chain *cell_tail) {
 Chain *cell_current;
 
     cell_current = cell_tail;
-    while (cell_current != NULL) {
+    while (cell_current) {
         if (addr == cell_current->addr_page)
             return true;
         else
@@ -522,7 +524,7 @@ Chain *new_tail;
 void destroy_chain(Chain *cell) {
 Chain *tmp;
 
-    while (cell != NULL) {
+    while (cell) {
         tmp = cell->next;
         free(cell);
         cell = tmp;
@@ -753,7 +755,7 @@ void write_keys(u_int32_t *ptr, idx_page_content *list) {
 void destroy_list(idx_page_content *list) {
 idx_page_content *tmp;
 
-    while (list != NULL) {
+    while (list) {
         tmp = list->next;
         free(list);
         list = tmp;
@@ -878,3 +880,153 @@ int flag;
     return flag;
 }
 
+void gen_db_report(int idx, Page_registry *idx_registry) {
+idx_dates *dates;
+
+    dates = select_dist_ymd(idx, idx_registry);
+    print_tree_content(idx, idx_registry, dates);
+    destroy_dates(dates);
+}
+
+idx_dates * select_dist_ymd(int idx, Page_registry *idx_registry) {
+u_int32_t *ptr, *count, *offset, i;
+void *addr_page;
+idx_dates *dates;
+Chain *cell_head, *cell_tail;
+
+    addr_page = idx_registry->page_addr;      /* core IDX page */
+    ptr = count = (u_int32_t *)(addr_page);
+    offset = ptr + 4;                         /* offset_0 */
+    ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;   /* field YEAR+MONTH+DAY - 1 */
+
+    dates = (idx_dates *)malloc(sizeof(idx_dates));
+    dates->ymd = *(ptr + 1);
+    dates->next = NULL;
+    dates->prev = NULL;
+
+    for (i=1; i<=(*count)+1; i++) {                                               // L0
+        if (*offset != 0) {
+            cell_head = (Chain *)malloc(sizeof(Chain));
+            cell_head->addr_page = idx_registry->page_addr;
+            cell_head->next = NULL;
+            cell_head->prev = NULL;
+            cell_tail = cell_head;
+            addr_page = locate_page_in_registry(idx_registry, *offset);
+            if (addr_page == NULL)
+                addr_page = map_page_from_hdd_to_registry(idx_registry, *offset, idx, NULL);
+            cell_tail = new_cell(cell_tail, addr_page);
+            dates = check_offset(addr_page, dates, idx_registry, idx, cell_tail); // L1 --> L2 --> ... next (if exist)
+            destroy_chain(cell_head);
+        }
+        if (i > (*count))                                                         // L0
+            break;
+        ptr++;         /* field YEAR+MONTH+DAY */
+        if (check_new_date(dates, *ptr) == false)
+            dates = add_new_date(dates, *ptr);
+        offset = ptr + 3;
+        ptr = ptr + 5;
+    }
+    return dates;
+}
+
+bool check_new_date(idx_dates *dates, u_int32_t ymd)  {
+    while (dates) {
+        if (ymd == dates->ymd)
+            return true;
+        else
+            dates = dates->next;
+    }
+    return false;
+}
+
+idx_dates * add_new_date(idx_dates *dates, u_int32_t ymd) {
+idx_dates *new_date, *tmp, *list;
+
+    new_date = (idx_dates *)malloc(sizeof(idx_dates));
+    new_date->ymd = ymd;
+    list = dates;
+    while (list) {
+        if (new_date->ymd < list->ymd) {
+            if (list->prev == NULL) {
+                new_date->prev = NULL;
+                new_date->next = list;
+                list->prev = new_date;
+                return new_date;
+            }
+            else {
+                tmp = list->prev;
+                list->prev = new_date;
+                new_date->next = list;
+                new_date->prev = tmp;
+                tmp->next = new_date;
+                return dates;
+            }
+        }
+        if (list->next == NULL) {
+            list->next = new_date;
+            new_date->prev = list;
+            new_date->next = NULL;
+            return dates;
+        }
+        list = list->next;
+    }
+    return NULL;
+}
+
+idx_dates * check_offset(void *addr_page, idx_dates *dates, Page_registry *idx_registry, int idx, Chain *cell_tail) {
+u_int32_t *ptr, *count, *offset, i;
+void *addr_p;
+
+    ptr = count = (u_int32_t *)addr_page;
+    offset = ptr + 4;                         /* offset_0 */
+    ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;   /* field YEAR+MONTH+DAY - 1 */
+    flag = false;
+    for (i=1; i<=(*count)+1; i++) {                                                            // L1
+        if ((*offset !=0) && (*offset != 0xFFFFFFFF)) {                                        // go to the next Level (if exist)
+            addr_p = locate_page_in_registry(idx_registry, *offset);
+            if (addr_p == NULL)
+                addr_p = map_page_from_hdd_to_registry(idx_registry, *offset, idx, cell_tail);
+            cell_tail = new_cell(cell_tail, addr_p);
+            dates = check_offset(addr_p, dates, idx_registry, idx, cell_tail);                  // L2 --> ... next lower level (if exist)
+            if (flag) {
+                cell_tail = cat_tail(cell_tail);
+                flag = false;
+            }
+        }
+        if (i > (*count))                                                                       // L1
+            break;
+        ptr++;         /* field YEAR+MONTH+DAY */
+        if (check_new_date(dates, *ptr) == false)
+            dates = add_new_date(dates, *ptr);
+        offset = ptr + 3;
+        ptr = ptr + 5;
+    }
+    if (*offset == 0xFFFFFFFF)
+        flag = true;
+    return dates;
+}
+
+void destroy_dates(idx_dates *dates) {
+idx_dates *tmp;
+
+    while (dates) {
+        tmp = dates->next;
+        free(dates);
+        dates = tmp;
+    }
+}
+
+Chain * cat_tail(Chain *cell_tail) {
+Chain *tmp;
+
+    tmp = cell_tail;
+    cell_tail = cell_tail->prev;
+    cell_tail->next = NULL;
+    free(tmp);
+    return cell_tail;
+}
+
+
+void print_tree_content(int idx, Page_registry *idx_registry, idx_dates *dates) {
+
+}
