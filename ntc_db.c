@@ -6,8 +6,10 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <ntc.h>
 #include <ntc_db.h>
+#include <ntc_net.h>
 #include <ntc_tools.h>
 
 CFG cfg;
@@ -145,7 +147,7 @@ int count;
             ht =  ht->next;
         }
     }
-    gen_db_report(cfg.idx, cfg.idx_page_registry);
+    gen_db_report(cfg.idx, cfg.idx_page_registry, cfg.db, cfg.db_page_registry);
     close_page_registry(&cfg);
     close(cfg.db);
     close(cfg.idx);
@@ -370,7 +372,7 @@ Page_registry *db_registry;
     if (addr_page == NULL)
         addr_page = map_page_from_hdd_to_registry(db_registry, page_for_write, db, NULL);
     ptr = (u_int32_t *)addr_page;
-    ptr = ptr + offset_on_page + 2;
+    ptr = ptr + offset_on_page + 3;
     lli = (long long int *)ptr;
     *lli = *lli + hkey->vol;
     ptr = ptr + 2;
@@ -880,18 +882,20 @@ int flag;
     return flag;
 }
 
-void gen_db_report(int idx, Page_registry *idx_registry) {
-idx_dates *dates;
+void gen_db_report(int idx, Page_registry *idx_registry, int db, Page_registry *db_registry) {
+container *dates, *ip;
 
-    dates = select_dist_ymd(idx, idx_registry);
-    print_tree_content(idx, idx_registry, dates);
-    destroy_dates(dates);
+    dates = select_dist(idx, idx_registry, 1);
+    ip = select_dist(idx, idx_registry, 2);
+    print_tree_content(idx, idx_registry, db, db_registry, dates, ip);
+    destroy_container(dates);
+    destroy_container(ip);
 }
 
-idx_dates * select_dist_ymd(int idx, Page_registry *idx_registry) {
+container * select_dist(int idx, Page_registry *idx_registry, u_int8_t par) {
 u_int32_t *ptr, *count, *offset, i;
 void *addr_page;
-idx_dates *dates;
+container *cont;
 Chain *cell_head, *cell_tail;
 
     addr_page = idx_registry->page_addr;      /* core IDX page */
@@ -899,12 +903,17 @@ Chain *cell_head, *cell_tail;
     offset = ptr + 4;                         /* offset_0 */
     ptr = ptr + IDX_SERVICE_RECORD_LEN - 1;   /* field YEAR+MONTH+DAY - 1 */
 
-    dates = (idx_dates *)malloc(sizeof(idx_dates));
-    dates->ymd = *(ptr + 1);
-    dates->next = NULL;
-    dates->prev = NULL;
-
-    for (i=1; i<=(*count)+1; i++) {                                               // L0
+    cont = (container *)malloc(sizeof(container));
+    cont->next = NULL;
+    cont->prev = NULL;
+    cont->mas = (u_int32_t *)malloc(sizeof(u_int32_t)*par);
+    if (par == 1)
+        cont->mas[0] = *(ptr + 1);    // ymd
+    else {
+        cont->mas[0] = *(ptr + 2);    // srcIP
+        cont->mas[1] = *(ptr + 3);    // dstIP
+    }
+    for (i=1; i<=(*count)+1; i++) {                                                   // L0
         if (*offset != 0) {
             cell_head = (Chain *)malloc(sizeof(Chain));
             cell_head->addr_page = idx_registry->page_addr;
@@ -915,65 +924,88 @@ Chain *cell_head, *cell_tail;
             if (addr_page == NULL)
                 addr_page = map_page_from_hdd_to_registry(idx_registry, *offset, idx, NULL);
             cell_tail = new_cell(cell_tail, addr_page);
-            dates = check_offset(addr_page, dates, idx_registry, idx, cell_tail); // L1 --> L2 --> ... next (if exist)
+            cont = check_offset(addr_page, cont, idx_registry, idx, cell_tail, par);  // L1 --> L2 --> ... next (if exist)
             destroy_chain(cell_head);
         }
-        if (i > (*count))                                                         // L0
+        if (i > (*count))                                                             // L0
             break;
         ptr++;         /* field YEAR+MONTH+DAY */
-        if (check_new_date(dates, *ptr) == false)
-            dates = add_new_date(dates, *ptr);
+        if (check_new_elem(cont, ptr, par) == false)
+            cont = add_new_elem(cont, ptr, par);
         offset = ptr + 3;
         ptr = ptr + 5;
     }
-    return dates;
+    return cont;
 }
 
-bool check_new_date(idx_dates *dates, u_int32_t ymd)  {
-    while (dates) {
-        if (ymd == dates->ymd)
+bool check_new_elem(container *cont, u_int32_t *ptr, u_int8_t par)  {
+    while (cont) {
+        if (compare_cont_elem(ptr, cont->mas, par) == 0)
             return true;
         else
-            dates = dates->next;
+            cont = cont->next;
     }
     return false;
 }
 
-idx_dates * add_new_date(idx_dates *dates, u_int32_t ymd) {
-idx_dates *new_date, *tmp, *list;
+int compare_cont_elem(u_int32_t *ptr, u_int32_t *mas, u_int8_t par) {
 
-    new_date = (idx_dates *)malloc(sizeof(idx_dates));
-    new_date->ymd = ymd;
-    list = dates;
+    if (par == 1) {
+        if (*ptr == mas[0]) return  0;
+        if (*ptr >  mas[0]) return  1;
+        if (*ptr <  mas[0]) return -1;
+    }
+    else {
+        if ((*(ptr+1) == mas[0]) && (*(ptr+2) == mas[1])) return 0;
+        if (*(ptr+1) > mas[0]) return  1;
+        if (*(ptr+1) < mas[0]) return -1;
+        if (*(ptr+2) > mas[1]) return  1;
+        if (*(ptr+2) < mas[1]) return -1;
+    }
+    return 0;
+}
+
+container * add_new_elem(container *cont, u_int32_t *ptr, u_int8_t par) {
+container *new_elem, *tmp, *list;
+
+    new_elem = (container *)malloc(sizeof(container));
+    new_elem->mas = (u_int32_t *)malloc(sizeof(u_int32_t)*par);
+    if (par == 1)
+        new_elem->mas[0] = *ptr;          // ymd
+    else {
+        new_elem->mas[0] = *(ptr + 1);    // srcIP
+        new_elem->mas[1] = *(ptr + 2);    // dstIP
+    }
+    list = cont;
     while (list) {
-        if (new_date->ymd < list->ymd) {
+        if (compare_cont_elem(ptr, list->mas, par) < 0) {
             if (list->prev == NULL) {
-                new_date->prev = NULL;
-                new_date->next = list;
-                list->prev = new_date;
-                return new_date;
+                new_elem->prev = NULL;
+                new_elem->next = list;
+                list->prev = new_elem;
+                return new_elem;
             }
             else {
                 tmp = list->prev;
-                list->prev = new_date;
-                new_date->next = list;
-                new_date->prev = tmp;
-                tmp->next = new_date;
-                return dates;
+                list->prev = new_elem;
+                new_elem->next = list;
+                new_elem->prev = tmp;
+                tmp->next = new_elem;
+                return cont;
             }
         }
         if (list->next == NULL) {
-            list->next = new_date;
-            new_date->prev = list;
-            new_date->next = NULL;
-            return dates;
+            list->next = new_elem;
+            new_elem->prev = list;
+            new_elem->next = NULL;
+            return cont;
         }
         list = list->next;
     }
     return NULL;
 }
 
-idx_dates * check_offset(void *addr_page, idx_dates *dates, Page_registry *idx_registry, int idx, Chain *cell_tail) {
+container * check_offset(void *addr_page, container *cont, Page_registry *idx_registry, int idx, Chain *cell_tail, u_int8_t par) {
 u_int32_t *ptr, *count, *offset, i;
 void *addr_p;
 
@@ -987,7 +1019,7 @@ void *addr_p;
             if (addr_p == NULL)
                 addr_p = map_page_from_hdd_to_registry(idx_registry, *offset, idx, cell_tail);
             cell_tail = new_cell(cell_tail, addr_p);
-            dates = check_offset(addr_p, dates, idx_registry, idx, cell_tail);                  // L2 --> ... next lower level (if exist)
+            cont = check_offset(addr_p, cont, idx_registry, idx, cell_tail, par);              // L2 --> ... next lower level (if exist)
             if (flag) {
                 cell_tail = cat_tail(cell_tail);
                 flag = false;
@@ -996,23 +1028,24 @@ void *addr_p;
         if (i > (*count))                                                                       // L1
             break;
         ptr++;         /* field YEAR+MONTH+DAY */
-        if (check_new_date(dates, *ptr) == false)
-            dates = add_new_date(dates, *ptr);
+        if (check_new_elem(cont, ptr, par) == false)
+            cont = add_new_elem(cont, ptr, par);
         offset = ptr + 3;
         ptr = ptr + 5;
     }
     if (*offset == 0xFFFFFFFF)
         flag = true;
-    return dates;
+    return cont;
 }
 
-void destroy_dates(idx_dates *dates) {
-idx_dates *tmp;
+void destroy_container(container *cont) {
+container *tmp;
 
-    while (dates) {
-        tmp = dates->next;
-        free(dates);
-        dates = tmp;
+    while (cont) {
+        tmp = cont->next;
+        free(cont->mas);
+        free(cont);
+        cont = tmp;
     }
 }
 
@@ -1026,7 +1059,84 @@ Chain *tmp;
     return cell_tail;
 }
 
+void print_tree_content(int idx, Page_registry *idx_registry, int db, Page_registry *db_registry, container *dates, container *ip) {
+u_int32_t *ptr;
+u_int32_t page_db, offset_on_page, packs;
+void *addr_page;
+struct tm *time_ptr;
+time_t the_time;
+FILE *report;
+u_int8_t ip_s[16], ip_d[16];
+char report_name[33], dt[11];
+container *tmp;
+long long int address, vol;
+HashKey *hkey;
 
-void print_tree_content(int idx, Page_registry *idx_registry, idx_dates *dates) {
+    (void) time (&the_time);
+    time_ptr = localtime (&the_time);
+    strftime (report_name, 33, "ntc-%Y-%m-%d__%H-%M-%S__db.log", time_ptr);
+    if ((report =  fopen (report_name,  "w")) == NULL)
+        quit ("\nCan't create the db report\n");
 
+    fprintf(report, "                                    +--------------------+\n");
+    fprintf(report, "                                    |   VOLUME / PACKETS |\n");
+    fprintf(report, "------------------------------------");
+    tmp = dates;
+    while (tmp) {
+        fprintf(report, "+--------------------");
+        tmp = tmp->next;
+    }
+    fprintf(report, "\n");
+    fprintf(report, "        IPsrc             IPdst     ");
+    tmp = dates;
+    while (tmp) {
+        int_date_to_str((tmp->mas)[0], dt);
+        fprintf(report, "|%14s      ", dt);
+        tmp = tmp->next;
+    }
+    fprintf(report, "\n");
+    fprintf(report, "------------------------------------");
+    tmp = dates;
+    while (tmp) {
+        fprintf(report, "+--------------------");
+        tmp = tmp->next;
+    }
+    fprintf(report, "\n");
+    hkey = (HashKey *)malloc(sizeof(HashKey));
+    tmp = dates;
+    while (ip) {
+        intaddr_to_string((ip->mas)[0], ip_s);
+        intaddr_to_string((ip->mas)[1], ip_d);
+        fprintf(report, "%15s   %15s   ", ip_s, ip_d);
+        while (dates) {
+            hkey->day   = (dates->mas)[0] & 0x000000FF;
+            hkey->month =((dates->mas)[0] & 0x0000FF00) >> 8;
+            hkey->year  = (dates->mas)[0] >> 16;
+            hkey->srcIP = (ip->mas)[0];
+            hkey->dstIP = (ip->mas)[1];
+            address = locate_record(hkey, idx, idx_registry);
+            if (address > 0) {
+                page_db = address >> 32;
+                offset_on_page = address;
+                addr_page = locate_page_in_registry(db_registry, page_db);
+                if (addr_page == NULL)
+                    addr_page = map_page_from_hdd_to_registry(db_registry, page_db, db, NULL);
+                ptr = (u_int32_t *)addr_page;
+                ptr = ptr + offset_on_page + 3;
+                vol = *((long long int *)ptr);
+                packs = *(ptr + 2);
+                fprintf(report, "| %10lld %7d ", vol, packs);
+            }
+            else
+                fprintf(report, "|                    ");
+            dates = dates->next;
+        }
+        fprintf(report, "\n");
+        dates = tmp;
+        ip = ip->next;
+    }
+    free(hkey);
+    fprintf(report, "\n----- END OF REPORT -----\n");
+    fclose(report);
+    printf("\n The DB report file: %s%s%s\n", CYAN_TEXT, report_name, RESET);
 }

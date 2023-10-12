@@ -65,18 +65,13 @@ u_int8_t d;
 }
 
 int compare_keys(u_int32_t current_srcIP, u_int32_t current_dstIP, u_int32_t new_srcIP, u_int32_t new_dstIP) {
-int src, dst, rez;
 
-    src = new_srcIP - current_srcIP;
-    dst = new_dstIP - current_dstIP;
-
-    if ((src == 0) && (dst == 0)) rez = 0;
-    if (src > 0) rez =  1;
-    if (src < 0) rez = -1;
-    if (dst > 0) rez =  1;
-    if (dst < 0) rez = -1;
-
-    return rez;
+    if ((new_srcIP == current_srcIP) && (new_dstIP == current_dstIP)) return 0;
+    if (new_srcIP > current_srcIP) return  1;
+    if (new_srcIP < current_srcIP) return -1;
+    if (new_dstIP > current_dstIP) return  1;
+    if (new_dstIP < current_dstIP) return -1;
+    return 0;
 }
 
 int ht_count(hashtable *ht) {
@@ -88,4 +83,30 @@ int count;
         ht =  ht->next;
     }
     return count;
+}
+
+void int_date_to_str(u_int32_t ymd, char *str) {
+int p;
+u_int16_t y;
+u_int8_t d,i;
+char c, r, m[4];
+
+    y =  ymd >> 16;
+    for (i=0; i<5; i++) {
+        d = ymd & 0x000000FF;
+        c = (d / 10) + '0';
+        r = (d % 10) + '0';
+        str[i] = c; i++;
+        str[i] = r; i++;
+        str[i] = '.';
+        ymd = ymd >> 8;
+    }
+    for (p = 0; p < 4; p++) {
+        r = y % 10;
+        y = y / 10;
+        m[p] = r + '0';
+    }
+    for (p=p-1; p>=0; p--,i++)
+        str[i] = m[p];
+    str[i] = '\0';
 }
