@@ -1079,7 +1079,7 @@ HashKey *hkey;
         quit ("\nCan't create the db report\n");
 
     fprintf(report, "                                    +--------------------+\n");
-    fprintf(report, "                                    |   VOLUME / PACKETS |\n");
+    fprintf(report, "                                    |  VOLUME / PACKETS  |\n");
     fprintf(report, "------------------------------------");
     tmp = dates;
     while (tmp) {
@@ -1091,7 +1091,7 @@ HashKey *hkey;
     tmp = dates;
     while (tmp) {
         int_date_to_str((tmp->mas)[0], dt);
-        fprintf(report, "|%14s      ", dt);
+        fprintf(report, "| %14s     ", dt);
         tmp = tmp->next;
     }
     fprintf(report, "\n");
