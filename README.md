@@ -25,6 +25,11 @@ In this case, the traffic will be saved and accumulated in the database. This in
 ![](/screenshot/ntc_with_db.png)
 
    A report is also generated in a text file.</br>
+   In this case, a report is also generated from the database on the dates of network connection activity.</br>
+   The protocol displays the volume of traffic for the dates when the network connection was active.</br>
+   Here is part of the protocol:</br>
+
+![](/screenshot/ntc_with_db_protocol.png)
 
 ## DB and IDX file structure
 The file consists of blocks. Each block is a page of 8192 bytes.</br>

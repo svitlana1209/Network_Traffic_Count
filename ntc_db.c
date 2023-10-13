@@ -1078,27 +1078,27 @@ HashKey *hkey;
     if ((report =  fopen (report_name,  "w")) == NULL)
         quit ("\nCan't create the db report\n");
 
-    fprintf(report, "                                    +--------------------+\n");
-    fprintf(report, "                                    |  VOLUME / PACKETS  |\n");
-    fprintf(report, "------------------------------------");
+    fprintf(report, "                                    +---------------------+\n");
+    fprintf(report, "                                    |   VOLUME / PACKETS  |\n");
+    fprintf(report, "------------------------------------+");
     tmp = dates;
     while (tmp) {
-        fprintf(report, "+--------------------");
+        fprintf(report, "---------------------+");
         tmp = tmp->next;
     }
     fprintf(report, "\n");
-    fprintf(report, "        IPsrc             IPdst     ");
+    fprintf(report, "        IPsrc             IPdst     |");
     tmp = dates;
     while (tmp) {
         int_date_to_str((tmp->mas)[0], dt);
-        fprintf(report, "| %14s     ", dt);
+        fprintf(report, "  %14s     |", dt);
         tmp = tmp->next;
     }
     fprintf(report, "\n");
-    fprintf(report, "------------------------------------");
+    fprintf(report, "------------------------------------+");
     tmp = dates;
     while (tmp) {
-        fprintf(report, "+--------------------");
+        fprintf(report, "---------------------+");
         tmp = tmp->next;
     }
     fprintf(report, "\n");
@@ -1107,7 +1107,7 @@ HashKey *hkey;
     while (ip) {
         intaddr_to_string((ip->mas)[0], ip_s);
         intaddr_to_string((ip->mas)[1], ip_d);
-        fprintf(report, "%15s   %15s   ", ip_s, ip_d);
+        fprintf(report, "%15s   %15s   |", ip_s, ip_d);
         while (dates) {
             hkey->day   = (dates->mas)[0] & 0x000000FF;
             hkey->month =((dates->mas)[0] & 0x0000FF00) >> 8;
@@ -1125,10 +1125,10 @@ HashKey *hkey;
                 ptr = ptr + offset_on_page + 3;
                 vol = *((long long int *)ptr);
                 packs = *(ptr + 2);
-                fprintf(report, "| %10lld %7d ", vol, packs);
+                fprintf(report, " %10lld %7d  |", vol, packs);
             }
             else
-                fprintf(report, "|                    ");
+                fprintf(report, "                     |");
             dates = dates->next;
         }
         fprintf(report, "\n");
